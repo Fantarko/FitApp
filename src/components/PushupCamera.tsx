@@ -13,11 +13,28 @@ import { createClient } from "@/lib/supabase/client";
 
 type Status = "idle" | "loading" | "ready" | "running" | "saving" | "done" | "error";
 
+type PushupCameraProps = {
+  mode?: "solo" | "vs";
+  matchId?: string;
+};
+
+type VsMatch = {
+  id: string;
+  challenger_id: string;
+  opponent_id: string | null;
+  challenger_reps: number;
+  opponent_reps: number;
+  status: "pending" | "active" | "completed" | "cancelled" | "disputed";
+};
+
 const GOAL = 30;
 // keep the server-side log light: one sample every N processed frames
 const LOG_SAMPLE_INTERVAL = 15;
 
-export default function PushupCamera() {
+export default function PushupCamera({
+  mode = "solo",
+  matchId,
+}: PushupCameraProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
@@ -31,6 +48,13 @@ export default function PushupCamera() {
   const [status, setStatus] = useState<Status>("idle");
   const [reps, setReps] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
+
+  const [vsRole, setVsRole] = useState<"challenger" | "opponent" | null>(null);
+
+  const [vsReady, setVsReady] = useState(false);
+
+  const vsRoleRef = useRef<"challenger" | "opponent" | null>(null);
+  const vsReadyRef = useRef(false);
 
   const stopStream = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
@@ -84,31 +108,64 @@ export default function PushupCamera() {
     }
   }
 
-  function loop() {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const landmarker = landmarkerRef.current;
-    if (!video || !canvas || !landmarker) return;
+    function loop() {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const landmarker = landmarkerRef.current;
 
-    const now = performance.now();
-    const result = landmarker.detectForVideo(video, now);
+      if (!video || !canvas || !landmarker) return;
 
-    const ctx = canvas.getContext("2d");
-    if (ctx) drawSkeleton(result, ctx);
+      const now = performance.now();
 
-    const points = result.landmarks[0] as Landmark[] | undefined;
-    if (points) {
-      frameIndexRef.current += 1;
-      if (frameIndexRef.current % LOG_SAMPLE_INTERVAL === 0) {
-        logRef.current.push({ t: Math.round(now - startTimeRef.current), landmarks: points });
+      const result =
+        landmarker.detectForVideo(video, now);
+
+      const ctx = canvas.getContext("2d");
+
+      if (ctx) {
+        drawSkeleton(result, ctx);
       }
 
-      const event = counterRef.current.processFrame(points, now);
-      if (event) setReps(event.count);
-    }
+      const points =
+        result.landmarks[0] as Landmark[] | undefined;
 
-    rafRef.current = requestAnimationFrame(loop);
-  }
+      if (points) {
+        frameIndexRef.current += 1;
+
+        if (
+          frameIndexRef.current %
+          LOG_SAMPLE_INTERVAL === 0
+        ) {
+          logRef.current.push({
+            t: Math.round(
+              now - startTimeRef.current
+            ),
+            landmarks: points,
+          });
+        }
+
+        const event =
+          counterRef.current.processFrame(
+            points,
+            now
+          );
+
+        if (event) {
+          setReps(event.count);
+
+          // VS mode → ส่งคะแนนเข้า match
+          if (
+            mode === "vs" &&
+            vsReadyRef.current
+          ) {
+            updateVsScore(event.count);
+          }
+        }
+      }
+
+      rafRef.current =
+        requestAnimationFrame(loop);
+    }
 
   async function handleStart() {
     setErrorMsg("");
@@ -138,6 +195,36 @@ export default function PushupCamera() {
       stopStream();
     }
   }
+      async function updateVsScore(count: number) {
+          if (
+            mode !== "vs" ||
+            !matchId ||
+            !vsRoleRef.current
+          ) {
+            return;
+          }
+
+          const supabase = createClient();
+
+          const column =
+            vsRoleRef.current === "challenger"
+              ? "challenger_reps"
+              : "opponent_reps";
+
+          const { error } = await supabase
+            .from("vs_matches")
+            .update({
+              [column]: count,
+            })
+            .eq("id", matchId);
+
+          if (error) {
+            console.error(
+              "Failed to update VS score:",
+              error
+            );
+          }
+        }
 
   async function handleFinish() {
     stopStream();
@@ -160,7 +247,62 @@ export default function PushupCamera() {
 
     setStatus("done");
   }
+    useEffect(() => {
+      if (mode !== "vs" || !matchId) return;
 
+      let cancelled = false;
+
+      async function loadMatch() {
+        const supabase = createClient();
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          if (!cancelled) {
+            setErrorMsg("กรุณาเข้าสู่ระบบก่อนแข่งขัน");
+          }
+          return;
+        }
+
+        const { data: match, error } = await supabase
+          .from("vs_matches")
+          .select(
+            "id, challenger_id, opponent_id, challenger_reps, opponent_reps, status"
+          )
+          .eq("id", matchId)
+          .single();
+
+        if (error || !match) {
+          if (!cancelled) {
+            setErrorMsg("ไม่พบการแข่งขันนี้");
+          }
+          return;
+        }
+
+        if (match.challenger_id === user.id) {
+          setVsRole("challenger");
+          
+        } else if (match.opponent_id === user.id) {
+          setVsRole("opponent");
+        } else {
+          setErrorMsg("คุณไม่มีสิทธิ์เข้าร่วมการแข่งขันนี้");
+          return;
+        }
+
+        if (!cancelled) {
+          setVsReady(true);
+          vsReadyRef.current = true;
+        }
+      }
+
+      loadMatch();
+
+      return () => {
+        cancelled = true;
+      };
+    }, [mode, matchId]);
   return (
     <div className="flex w-full max-w-2xl flex-col items-center gap-6">
       <div className="glass relative aspect-video w-full overflow-hidden rounded-[24px]">
