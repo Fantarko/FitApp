@@ -35,8 +35,11 @@ export default function PushupCamera({
   mode = "solo",
   matchId,
 }: PushupCameraProps) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // 3) Supabase client ตัวเดียวต่อ component
+  const [supabase] = useState(() => createClient());
+
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
   const counterRef = useRef(new PushupCounter());
   const rafRef = useRef<number | null>(null);
@@ -50,8 +53,9 @@ export default function PushupCamera({
   const [errorMsg, setErrorMsg] = useState("");
 
   const [vsRole, setVsRole] = useState<"challenger" | "opponent" | null>(null);
-
   const [vsReady, setVsReady] = useState(false);
+  // 6) คะแนนของคู่แข่ง (รับผ่าน Realtime)
+  const [opponentReps, setOpponentReps] = useState(0);
 
   const vsRoleRef = useRef<"challenger" | "opponent" | null>(null);
   const vsReadyRef = useRef(false);
@@ -108,66 +112,57 @@ export default function PushupCamera({
     }
   }
 
-    function loop() {
-      const video = videoRef.current;
-      const canvas = canvasRef.current;
-      const landmarker = landmarkerRef.current;
+  function loop() {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const landmarker = landmarkerRef.current;
 
-      if (!video || !canvas || !landmarker) return;
+    if (!video || !canvas || !landmarker) return;
 
-      const now = performance.now();
+    const now = performance.now();
 
-      const result =
-        landmarker.detectForVideo(video, now);
+    const result = landmarker.detectForVideo(video, now);
 
-      const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d");
 
-      if (ctx) {
-        drawSkeleton(result, ctx);
-      }
-
-      const points =
-        result.landmarks[0] as Landmark[] | undefined;
-
-      if (points) {
-        frameIndexRef.current += 1;
-
-        if (
-          frameIndexRef.current %
-          LOG_SAMPLE_INTERVAL === 0
-        ) {
-          logRef.current.push({
-            t: Math.round(
-              now - startTimeRef.current
-            ),
-            landmarks: points,
-          });
-        }
-
-        const event =
-          counterRef.current.processFrame(
-            points,
-            now
-          );
-
-        if (event) {
-          setReps(event.count);
-
-          // VS mode → ส่งคะแนนเข้า match
-          if (
-            mode === "vs" &&
-            vsReadyRef.current
-          ) {
-            updateVsScore(event.count);
-          }
-        }
-      }
-
-      rafRef.current =
-        requestAnimationFrame(loop);
+    if (ctx) {
+      drawSkeleton(result, ctx);
     }
 
+    const points = result.landmarks[0] as Landmark[] | undefined;
+
+    if (points) {
+      frameIndexRef.current += 1;
+
+      if (frameIndexRef.current % LOG_SAMPLE_INTERVAL === 0) {
+        logRef.current.push({
+          t: Math.round(now - startTimeRef.current),
+          landmarks: points,
+        });
+      }
+
+      const event = counterRef.current.processFrame(points, now);
+
+      if (event) {
+        setReps(event.count);
+
+        // VS mode → ส่งคะแนนเข้า match
+        if (mode === "vs" && vsReadyRef.current) {
+          updateVsScore(event.count);
+        }
+      }
+    }
+
+    rafRef.current = requestAnimationFrame(loop);
+  }
+
+  // 4) กันเริ่มก่อน VS พร้อม
   async function handleStart() {
+    if (mode === "vs" && !vsReadyRef.current) {
+      setErrorMsg("กำลังเตรียมการแข่งขัน กรุณารอสักครู่");
+      return;
+    }
+
     setErrorMsg("");
     setStatus("loading");
     try {
@@ -195,43 +190,34 @@ export default function PushupCamera({
       stopStream();
     }
   }
-      async function updateVsScore(count: number) {
-          if (
-            mode !== "vs" ||
-            !matchId ||
-            !vsRoleRef.current
-          ) {
-            return;
-          }
 
-          const supabase = createClient();
+  // 5) ใช้ supabase ตัวเดียว + กันส่งคะแนนหลังแมตช์จบ
+  async function updateVsScore(count: number) {
+    if (mode !== "vs" || !matchId || !vsRoleRef.current) {
+      return;
+    }
 
-          const column =
-            vsRoleRef.current === "challenger"
-              ? "challenger_reps"
-              : "opponent_reps";
+    const column =
+      vsRoleRef.current === "challenger" ? "challenger_reps" : "opponent_reps";
 
-          const { error } = await supabase
-            .from("vs_matches")
-            .update({
-              [column]: count,
-            })
-            .eq("id", matchId);
+    const { error } = await supabase
+      .from("vs_matches")
+      .update({
+        [column]: count,
+      })
+      .eq("id", matchId)
+      .eq("status", "active");
 
-          if (error) {
-            console.error(
-              "Failed to update VS score:",
-              error
-            );
-          }
-        }
+    if (error) {
+      console.error("Failed to update VS score:", error);
+    }
+  }
 
   async function handleFinish() {
     stopStream();
     setStatus("saving");
 
     const durationSeconds = Math.round((performance.now() - startTimeRef.current) / 1000);
-    const supabase = createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -247,62 +233,102 @@ export default function PushupCamera({
 
     setStatus("done");
   }
-    useEffect(() => {
-      if (mode !== "vs" || !matchId) return;
 
-      let cancelled = false;
+  // 8-9-10) โหลดข้อมูลแมตช์ + ผูก role เข้า Ref + ตั้ง status เป็น ready
+  useEffect(() => {
+    if (mode !== "vs" || !matchId) return;
 
-      async function loadMatch() {
-        const supabase = createClient();
+    let cancelled = false;
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+    async function loadMatch() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-        if (!user) {
-          if (!cancelled) {
-            setErrorMsg("กรุณาเข้าสู่ระบบก่อนแข่งขัน");
-          }
-          return;
-        }
-
-        const { data: match, error } = await supabase
-          .from("vs_matches")
-          .select(
-            "id, challenger_id, opponent_id, challenger_reps, opponent_reps, status"
-          )
-          .eq("id", matchId)
-          .single();
-
-        if (error || !match) {
-          if (!cancelled) {
-            setErrorMsg("ไม่พบการแข่งขันนี้");
-          }
-          return;
-        }
-
-        if (match.challenger_id === user.id) {
-          setVsRole("challenger");
-          
-        } else if (match.opponent_id === user.id) {
-          setVsRole("opponent");
-        } else {
-          setErrorMsg("คุณไม่มีสิทธิ์เข้าร่วมการแข่งขันนี้");
-          return;
-        }
-
+      if (!user) {
         if (!cancelled) {
-          setVsReady(true);
-          vsReadyRef.current = true;
+          setErrorMsg("กรุณาเข้าสู่ระบบก่อนแข่งขัน");
         }
+        return;
       }
 
-      loadMatch();
+      const { data: match, error } = await supabase
+        .from("vs_matches")
+        .select(
+          "id, challenger_id, opponent_id, challenger_reps, opponent_reps, status"
+        )
+        .eq("id", matchId)
+        .single();
 
-      return () => {
-        cancelled = true;
-      };
-    }, [mode, matchId]);
+      if (error || !match) {
+        if (!cancelled) {
+          setErrorMsg("ไม่พบการแข่งขันนี้");
+        }
+        return;
+      }
+
+      if (match.challenger_id === user.id) {
+        setVsRole("challenger");
+        vsRoleRef.current = "challenger";
+      } else if (match.opponent_id === user.id) {
+        setVsRole("opponent");
+        vsRoleRef.current = "opponent";
+      } else {
+        setErrorMsg("คุณไม่มีสิทธิ์เข้าร่วมการแข่งขันนี้");
+        return;
+      }
+
+      if (!cancelled) {
+        setVsReady(true);
+        vsReadyRef.current = true;
+        setStatus("ready");
+      }
+    }
+
+    loadMatch();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [mode, matchId, supabase]);
+
+  // 6) รับคะแนนคู่แข่งแบบ Realtime
+  useEffect(() => {
+    if (mode !== "vs" || !matchId) return;
+
+    const channel = supabase
+      .channel(`vs-score-${matchId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "vs_matches",
+          filter: `id=eq.${matchId}`,
+        },
+        (payload) => {
+          const updated = payload.new as VsMatch;
+
+          if (vsRoleRef.current === "challenger") {
+            setOpponentReps(updated.opponent_reps ?? 0);
+          } else if (vsRoleRef.current === "opponent") {
+            setOpponentReps(updated.challenger_reps ?? 0);
+          }
+
+          if (updated.status !== "active") {
+            console.log("VS status changed:", updated.status);
+          }
+        }
+      )
+      .subscribe((status) => {
+        console.log(`VS score realtime: ${status}`);
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [mode, matchId, supabase]);
+
   return (
     <div className="flex w-full max-w-2xl flex-col items-center gap-6">
       <div className="glass relative aspect-video w-full overflow-hidden rounded-[24px]">
@@ -332,10 +358,60 @@ export default function PushupCamera({
 
       <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} />
 
+      {/* 7) แสดงคะแนนคู่แข่งใต้ RepRing */}
+      {mode === "vs" && (
+        <div className="grid w-full max-w-md grid-cols-2 gap-3">
+          <div className="glass rounded-2xl p-4 text-center">
+            <p className="text-sm text-ink/50">คุณ</p>
+            <p className="font-display text-3xl font-bold text-plum-deep">{reps}</p>
+            <p className="text-xs text-ink/40">ครั้ง</p>
+          </div>
+
+          <div className="glass rounded-2xl p-4 text-center">
+            <p className="text-sm text-ink/50">คู่แข่ง</p>
+            <p className="font-display text-3xl font-bold text-plum-deep">
+              {opponentReps}
+            </p>
+            <p className="text-xs text-ink/40">ครั้ง</p>
+          </div>
+        </div>
+      )}
+
+      {/* 11) แสดงบทบาท VS ก่อนปุ่มเริ่ม */}
+      {mode === "vs" && (
+        <div className="glass w-full max-w-md rounded-2xl p-4 text-center">
+          <p className="text-sm text-ink/50">บทบาทของคุณ</p>
+          <p className="mt-1 font-display text-xl font-bold text-plum-deep">
+            {vsRole === "challenger"
+              ? "⚔️ Challenger"
+              : vsRole === "opponent"
+                ? "⚔️ Opponent"
+                : "กำลังตรวจสอบ..."}
+          </p>
+
+          <div className="mt-3 grid grid-cols-2 gap-3">
+            <div>
+              <p className="text-xs text-ink/40">คุณ</p>
+              <p className="text-2xl font-bold">{reps}</p>
+            </div>
+
+            <div>
+              <p className="text-xs text-ink/40">คู่แข่ง</p>
+              <p className="text-2xl font-bold">{opponentReps}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex gap-4">
+        {/* 12) ปิดปุ่มเริ่มถ้า VS ยังไม่พร้อม */}
         {status === "idle" || status === "error" ? (
-          <GlassButton variant="primary" onClick={handleStart}>
-            เริ่มนับ
+          <GlassButton
+            variant="primary"
+            onClick={handleStart}
+            disabled={mode === "vs" && !vsReady}
+          >
+            {mode === "vs" && !vsReady ? "กำลังเตรียมการแข่งขัน..." : "เริ่มนับ"}
           </GlassButton>
         ) : null}
         {status === "running" ? (
