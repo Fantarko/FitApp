@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import GlassButton from "@/components/ui/GlassButton";
@@ -27,6 +27,13 @@ export default function VsPage() {
   const [loading, setLoading] = useState(false);
   const [match, setMatch] = useState<Match | null>(null);
   const [error, setError] = useState("");
+
+  // เก็บ match ปัจจุบันไว้ใน ref ให้ cleanup อ่านค่าล่าสุดได้เสมอ
+  // (ไม่ใช้ useEffect cleanup ปกติ เพราะ effect ตัวจับ match นี้รันแค่ตอน mount)
+  const matchRef = useRef<Match | null>(null);
+  useEffect(() => {
+    matchRef.current = match;
+  }, [match]);
 
   /**
    * หาคู่แข่งแบบสุ่ม
@@ -222,6 +229,34 @@ export default function VsPage() {
       supabase.removeChannel(channel);
     };
   }, [match?.id, router, supabase]);
+
+  /**
+   * ★ ใหม่: ยกเลิก match ที่ยัง pending อยู่ ถ้าผู้ใช้ออกจากหน้านี้
+   * ครอบทั้งกรณี:
+   *  - เดินไปหน้าอื่นในแอป (SPA navigation) → cleanup ตอน unmount
+   *  - ปิดแท็บ/รีเฟรช → beforeunload (ไม่การันตีส่งสำเร็จ 100%
+   *    แต่ช่วยลดเคสได้เยอะ — จุดกันสุดท้ายคือ staleness check ฝั่ง RPC)
+   */
+  useEffect(() => {
+    function cancelPendingMatch() {
+      const m = matchRef.current;
+      if (m && m.status === "pending") {
+        console.log("🧹 ยกเลิก pending match ที่ค้างอยู่:", m.id);
+        supabase
+          .from("vs_matches")
+          .update({ status: "cancelled" })
+          .eq("id", m.id)
+          .eq("status", "pending") // กันแก้ทับ match ที่เพิ่ง active ไปแล้ว
+          .then();
+      }
+    }
+
+    window.addEventListener("beforeunload", cancelPendingMatch);
+    return () => {
+      window.removeEventListener("beforeunload", cancelPendingMatch);
+      cancelPendingMatch();
+    };
+  }, [supabase]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">

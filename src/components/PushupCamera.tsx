@@ -281,7 +281,6 @@ export default function PushupCamera({
       if (!cancelled) {
         setVsReady(true);
         vsReadyRef.current = true;
-        setStatus("ready");
       }
     }
 
