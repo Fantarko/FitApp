@@ -9,9 +9,24 @@ import {
 import GlassButton from "@/components/ui/GlassButton";
 import RepRing from "@/components/ui/RepRing";
 import { PushupCounter, type Landmark } from "@/lib/pose/pushupCounter";
+import {
+  TrackingQualityMonitor,
+  CalibrationGate,
+  sampleBrightness,
+  QUALITY_MESSAGES_TH,
+  type QualityIssue,
+} from "@/lib/pose/frameQuality";
 import { createClient } from "@/lib/supabase/client";
 
-type Status = "idle" | "loading" | "ready" | "running" | "saving" | "done" | "error";
+type Status =
+  | "idle"
+  | "loading"
+  | "calibrating"
+  | "countdown"
+  | "running"
+  | "saving"
+  | "done"
+  | "error";
 
 type PushupCameraProps = {
   mode?: "solo" | "vs";
@@ -30,6 +45,7 @@ type VsMatch = {
 const GOAL = 30;
 // keep the server-side log light: one sample every N processed frames
 const LOG_SAMPLE_INTERVAL = 15;
+const BRIGHTNESS_SAMPLE_INTERVAL = 5;
 
 export default function PushupCamera({
   mode = "solo",
@@ -40,17 +56,25 @@ export default function PushupCamera({
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const sampleCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const landmarkerRef = useRef<PoseLandmarker | null>(null);
   const counterRef = useRef(new PushupCounter());
+  const qualityRef = useRef(new TrackingQualityMonitor());
+  const calibrationRef = useRef(new CalibrationGate());
+  const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rafRef = useRef<number | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const startTimeRef = useRef<number>(0);
   const frameIndexRef = useRef(0);
+  const lastBrightnessRef = useRef(255);
   const logRef = useRef<{ t: number; landmarks: Landmark[] }[]>([]);
 
   const [status, setStatus] = useState<Status>("idle");
   const [reps, setReps] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
+  const [qualityIssues, setQualityIssues] = useState<QualityIssue[]>([]);
+  const [calibrationProgress, setCalibrationProgress] = useState(0);
+  const [countdownNumber, setCountdownNumber] = useState<number | null>(null);
 
   const [vsRole, setVsRole] = useState<"challenger" | "opponent" | null>(null);
   const [vsReady, setVsReady] = useState(false);
@@ -59,9 +83,17 @@ export default function PushupCamera({
 
   const vsRoleRef = useRef<"challenger" | "opponent" | null>(null);
   const vsReadyRef = useRef(false);
+  const statusRef = useRef<Status>("idle");
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   const stopStream = useCallback(() => {
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
   }, []);
@@ -86,20 +118,22 @@ export default function PushupCamera({
     return landmarker;
   }
 
-  function drawSkeleton(result: PoseLandmarkerResult, ctx: CanvasRenderingContext2D) {
+  function drawSkeleton(result: PoseLandmarkerResult, ctx: CanvasRenderingContext2D, ok: boolean) {
     const { width, height } = ctx.canvas;
     ctx.clearRect(0, 0, width, height);
     const points = result.landmarks[0];
     if (!points) return;
 
-    ctx.fillStyle = "#1fae5b";
+    const color = ok ? "#1fae5b" : "#e0a30e";
+
+    ctx.fillStyle = color;
     for (const p of points) {
       ctx.beginPath();
       ctx.arc(p.x * width, p.y * height, 4, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    ctx.strokeStyle = "rgba(31,174,91,0.8)";
+    ctx.strokeStyle = ok ? "rgba(31,174,91,0.8)" : "rgba(224,163,14,0.8)";
     ctx.lineWidth = 3;
     for (const conn of PoseLandmarker.POSE_CONNECTIONS) {
       const pa = points[conn.start];
@@ -115,42 +149,72 @@ export default function PushupCamera({
   function loop() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
+    const sampleCanvas = sampleCanvasRef.current;
     const landmarker = landmarkerRef.current;
 
-    if (!video || !canvas || !landmarker) return;
+    if (!video || !canvas || !sampleCanvas || !landmarker) return;
 
     const now = performance.now();
 
     const result = landmarker.detectForVideo(video, now);
-
-    const ctx = canvas.getContext("2d");
-
-    if (ctx) {
-      drawSkeleton(result, ctx);
-    }
-
     const points = result.landmarks[0] as Landmark[] | undefined;
 
+    frameIndexRef.current += 1;
+
+    if (frameIndexRef.current % BRIGHTNESS_SAMPLE_INTERVAL === 0) {
+      lastBrightnessRef.current = sampleBrightness(video, sampleCanvas);
+    }
+
+    let qualityOk = true;
+
     if (points) {
-      frameIndexRef.current += 1;
+      const quality = qualityRef.current.evaluate(points, lastBrightnessRef.current);
+      qualityOk = quality.ok;
 
-      if (frameIndexRef.current % LOG_SAMPLE_INTERVAL === 0) {
-        logRef.current.push({
-          t: Math.round(now - startTimeRef.current),
-          landmarks: points,
-        });
-      }
+      setQualityIssues((prev) => {
+        const same =
+          prev.length === quality.issues.length &&
+          prev.every((v, i) => v === quality.issues[i]);
+        return same ? prev : quality.issues;
+      });
 
-      const event = counterRef.current.processFrame(points, now);
+      if (statusRef.current === "calibrating") {
+        // require N consecutive good frames before we trust this camera setup —
+        // this is the actual fix for "ขยับกล้องแล้วนับมั่ว": we never start counting
+        // against a stale/just-moved baseline, we force a fresh stable read first.
+        const passed = calibrationRef.current.update(qualityOk);
+        setCalibrationProgress(calibrationRef.current.progress());
+        if (passed) {
+          startCountdown();
+        }
+      } else if (statusRef.current === "running") {
+        if (frameIndexRef.current % LOG_SAMPLE_INTERVAL === 0) {
+          logRef.current.push({
+            t: Math.round(now - startTimeRef.current),
+            landmarks: points,
+          });
+        }
 
-      if (event) {
-        setReps(event.count);
+        // gate counting on quality: bad light / camera shake / unclear tracking
+        // never reach the counter, closing the easiest cheat vector
+        if (qualityOk) {
+          const event = counterRef.current.processFrame(points, now);
 
-        // VS mode → ส่งคะแนนเข้า match
-        if (mode === "vs" && vsReadyRef.current) {
-          updateVsScore(event.count);
+          if (event) {
+            setReps(event.count);
+
+            // VS mode → ส่งคะแนนเข้า match
+            if (mode === "vs" && vsReadyRef.current) {
+              updateVsScore(event.count);
+            }
+          }
         }
       }
+    }
+
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      drawSkeleton(result, ctx, qualityOk);
     }
 
     rafRef.current = requestAnimationFrame(loop);
@@ -178,17 +242,56 @@ export default function PushupCamera({
       await ensureLandmarker();
 
       counterRef.current.reset();
+      qualityRef.current.reset();
+      calibrationRef.current.reset();
       logRef.current = [];
       frameIndexRef.current = 0;
-      startTimeRef.current = performance.now();
       setReps(0);
-      setStatus("running");
+      setQualityIssues([]);
+      setCalibrationProgress(0);
+      setStatus("calibrating");
       rafRef.current = requestAnimationFrame(loop);
     } catch {
       setStatus("error");
       setErrorMsg("เปิดกล้องไม่ได้ — ตรวจสอบว่าอนุญาตสิทธิ์กล้องให้เว็บนี้แล้ว");
       stopStream();
     }
+  }
+
+  function startCountdown() {
+    if (countdownTimerRef.current) return; // already counting down
+    setStatus("countdown");
+    let n = 3;
+    setCountdownNumber(n);
+    countdownTimerRef.current = setInterval(() => {
+      n -= 1;
+      if (n <= 0) {
+        if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+        countdownTimerRef.current = null;
+        setCountdownNumber(null);
+        counterRef.current.reset();
+        logRef.current = [];
+        frameIndexRef.current = 0;
+        startTimeRef.current = performance.now();
+        setReps(0);
+        setStatus("running");
+      } else {
+        setCountdownNumber(n);
+      }
+    }, 700);
+  }
+
+  /** Manual re-calibration — for when the person moves the camera mid-session. */
+  function handleResetCalibration() {
+    if (countdownTimerRef.current) {
+      clearInterval(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    qualityRef.current.reset();
+    calibrationRef.current.reset();
+    setCalibrationProgress(0);
+    setCountdownNumber(null);
+    setStatus("calibrating");
   }
 
   // 5) ใช้ supabase ตัวเดียว + กันส่งคะแนนหลังแมตช์จบ
@@ -228,6 +331,8 @@ export default function PushupCamera({
         rep_count: counterRef.current.getCount(),
         duration_seconds: durationSeconds,
         landmark_log: logRef.current,
+        low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+        match_id: mode === "vs" ? matchId ?? null : null,
       });
     }
 
@@ -330,6 +435,8 @@ export default function PushupCamera({
 
   return (
     <div className="flex w-full max-w-2xl flex-col items-center gap-6">
+      <canvas ref={sampleCanvasRef} width={32} height={18} className="hidden" />
+
       <div className="glass relative aspect-video w-full overflow-hidden rounded-[24px]">
         <video
           ref={videoRef}
@@ -352,6 +459,67 @@ export default function PushupCamera({
           <div className="absolute inset-0 flex items-center justify-center text-ink/50">
             กำลังเปิดกล้องและโหลดโมเดล...
           </div>
+        )}
+
+        {status === "calibrating" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center">
+            <div className="text-4xl">📐</div>
+            <p className="font-display text-lg font-semibold text-white">
+              กำลังตั้งกล้อง
+            </p>
+            <p className="max-w-xs text-sm text-white/80">
+              วางมือถือให้นิ่ง (พิงหรือใช้ขาตั้ง) ให้เห็นทั้งตัวในเฟรม แสงพอ
+              แล้วอยู่นิ่งสักครู่
+            </p>
+            <div className="h-2 w-48 overflow-hidden rounded-full bg-white/20">
+              <div
+                className="h-full rounded-full bg-primary transition-all duration-150"
+                style={{ width: `${Math.round(calibrationProgress * 100)}%` }}
+              />
+            </div>
+            {qualityIssues.length > 0 && (
+              <div className="space-y-1">
+                {qualityIssues.map((issue) => (
+                  <p key={issue} className="text-xs font-medium text-amber-300">
+                    ⚠️ {QUALITY_MESSAGES_TH[issue]}
+                  </p>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {status === "countdown" && countdownNumber !== null && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">
+            <div className="text-6xl">✋</div>
+            <p className="font-display text-6xl font-bold text-white">
+              {countdownNumber}
+            </p>
+            <p className="text-sm text-white/80">เตรียมตัว...</p>
+          </div>
+        )}
+
+        {status === "running" && qualityIssues.length > 0 && (
+          <div className="absolute inset-x-0 bottom-0 space-y-1 bg-black/50 p-3">
+            {qualityIssues.map((issue) => (
+              <p key={issue} className="text-center text-xs font-medium text-amber-300">
+                ⚠️ {QUALITY_MESSAGES_TH[issue]}
+              </p>
+            ))}
+            <p className="text-center text-[11px] text-white/60">
+              หยุดนับชั่วคราวจนกว่าจะแก้ปัญหาข้างต้น
+            </p>
+          </div>
+        )}
+
+        {(status === "calibrating" || status === "countdown" || status === "running") && (
+          <button
+            type="button"
+            onClick={handleResetCalibration}
+            className="absolute right-3 top-3 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur"
+          >
+            🔄 รีเซ็ตกล้อง
+          </button>
         )}
       </div>
 
@@ -402,8 +570,7 @@ export default function PushupCamera({
         </div>
       )}
 
-      <div className="flex gap-4">
-        {/* 12) ปิดปุ่มเริ่มถ้า VS ยังไม่พร้อม */}
+      <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
         {status === "idle" || status === "error" ? (
           <GlassButton
             variant="primary"
@@ -411,6 +578,11 @@ export default function PushupCamera({
             disabled={mode === "vs" && !vsReady}
           >
             {mode === "vs" && !vsReady ? "กำลังเตรียมการแข่งขัน..." : "เริ่มนับ"}
+          </GlassButton>
+        ) : null}
+        {status === "calibrating" || status === "countdown" ? (
+          <GlassButton variant="ghost" disabled>
+            {status === "calibrating" ? "กำลังตั้งกล้อง..." : "เตรียมตัว..."}
           </GlassButton>
         ) : null}
         {status === "running" ? (
