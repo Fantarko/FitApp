@@ -311,8 +311,9 @@ export default function VsPage() {
                     </p>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="flex w-full flex-col gap-3">
 
+                  <div className="w-full">
                     <GlassButton
                       variant="plum"
                       onClick={findRandomMatch}
@@ -322,15 +323,18 @@ export default function VsPage() {
                         ? "กำลังค้นหาคู่แข่ง..."
                         : "หาคู่แข่งแบบสุ่ม"}
                     </GlassButton>
+                  </div>
 
+                  <div className="w-full">
                     <GlassButton
                       variant="ghost"
                       disabled={loading}
                     >
                       ท้าเพื่อนด้วยลิงก์
                     </GlassButton>
-
                   </div>
+
+                </div>
 
                   {error && (
                     <div className="rounded-xl border border-red-500/10 bg-red-500/[0.05] px-4 py-3">
