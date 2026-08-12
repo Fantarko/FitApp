@@ -38,7 +38,7 @@ export default async function BossListPage() {
         <div className="absolute top-0 right-1/4 h-96 w-96 rounded-full bg-sun/20 blur-3xl" />
       </div>
 
-      <h1 className="font-display text-3xl font-bold text-sun-deep">🐉 โหมดปราบบอส</h1>
+      <h1 className="font-display text-3xl font-bold text-sun-deep">โหมดปราบบอส</h1>
       <p className="max-w-md text-center text-ink/60">
         วิดพื้นแต่ละครั้งคือการโจมตี ปราบบอสให้ได้ก่อนหมดแรงเพื่อปลดล็อกด่านถัดไป
       </p>
