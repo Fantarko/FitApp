@@ -32,10 +32,6 @@ export default function VsMatchPage() {
     return (
       <main className="flex min-h-screen items-center justify-center px-4">
         <div className="glass w-full max-w-md rounded-[28px] p-8 text-center">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-black/5 text-3xl">
-            ⚔️
-          </div>
-
           <h1 className="font-display text-2xl font-bold text-plum-deep">
             กำลังเตรียมการแข่งขัน...
           </h1>
@@ -65,8 +61,6 @@ export default function VsMatchPage() {
         </button>
 
         <div className="text-center">
-          <div className="mb-3 text-5xl">⚔️</div>
-
           <p className="text-sm font-medium uppercase tracking-widest text-plum-deep/70">
             VS MATCH
           </p>

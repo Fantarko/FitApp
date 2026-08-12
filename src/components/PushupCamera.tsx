@@ -607,7 +607,7 @@ export default function PushupCamera({
             onClick={handleResetCalibration}
             className="absolute right-3 top-3 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur"
           >
-            🔄 รีเซ็ตกล้อง
+            รีเซ็ตกล้อง
           </button>
         )}
       </div>
@@ -700,7 +700,7 @@ export default function PushupCamera({
                 : "bg-sun/20 text-sun-deep"
           }`}
         >
-          {vsResult === "win" ? "🏆 คุณชนะ!" : vsResult === "lose" ? "😢 คุณแพ้" : "🤝 เสมอ"}
+          {vsResult === "win" ? "คุณชนะ!" : vsResult === "lose" ? "คุณแพ้" : "เสมอ"}
           {" — "}
           {reps} ต่อ {opponentReps} ครั้ง
         </p>

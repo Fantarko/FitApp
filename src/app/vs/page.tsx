@@ -44,7 +44,7 @@ export default function VsPage() {
     setLoading(true);
     setError("");
 
-    console.log("🎲 เริ่มค้นหาคู่แข่ง...");
+    console.log("เริ่มค้นหาคู่แข่ง...");
 
     try {
       const { data, error: rpcError } = await supabase.rpc(
@@ -87,7 +87,7 @@ export default function VsPage() {
         return;
       }
 
-      console.log("⚔️ Match:", newMatch);
+      console.log("Match:", newMatch);
 
       setMatch(newMatch);
 
@@ -96,7 +96,7 @@ export default function VsPage() {
        */
       if (newMatch.status === "active") {
         console.log(
-          "🔥 จับคู่สำเร็จทันที:",
+          "จับคู่สำเร็จทันที:",
           newMatch.id
         );
 
@@ -109,7 +109,7 @@ export default function VsPage() {
        */
       if (newMatch.status === "pending") {
         console.log(
-          "⏳ สร้าง Match แล้ว กำลังรอคู่แข่ง:",
+          "สร้าง Match แล้ว กำลังรอคู่แข่ง:",
           newMatch.id
         );
       }
@@ -151,7 +151,7 @@ export default function VsPage() {
           filter: `id=eq.${match.id}`,
         },
         (payload) => {
-          console.log("🔥 REALTIME UPDATE:", payload);
+          console.log("REALTIME UPDATE:", payload);
 
           const updatedMatch = payload.new as Match;
 
@@ -165,7 +165,7 @@ export default function VsPage() {
           }
 
           console.log(
-            "📊 Match status:",
+            "Match status:",
             updatedMatch.status
           );
 
@@ -176,7 +176,7 @@ export default function VsPage() {
            */
           if (updatedMatch.status === "active") {
             console.log(
-              "⚔️ จับคู่สำเร็จ! กำลังเข้าแข่งขัน:",
+              "จับคู่สำเร็จ! กำลังเข้าแข่งขัน:",
               updatedMatch.id
             );
 
@@ -186,19 +186,19 @@ export default function VsPage() {
       )
       .subscribe((status) => {
         console.log(
-          `📡 Realtime status (${match.id}):`,
+          `Realtime status (${match.id}):`,
           status
         );
 
         if (status === "SUBSCRIBED") {
           console.log(
-            "✅ Realtime เชื่อมต่อสำเร็จ!"
+            "Realtime เชื่อมต่อสำเร็จ!"
           );
         }
 
         if (status === "CHANNEL_ERROR") {
           console.error(
-            "❌ Realtime CHANNEL_ERROR"
+            "Realtime CHANNEL_ERROR"
           );
 
           setError(
@@ -208,7 +208,7 @@ export default function VsPage() {
 
         if (status === "TIMED_OUT") {
           console.error(
-            "⏰ Realtime connection timeout"
+            "Realtime connection timeout"
           );
 
           setError(
@@ -222,7 +222,7 @@ export default function VsPage() {
      */
     return () => {
       console.log(
-        "🔌 ปิด Realtime:",
+        "ปิด Realtime:",
         match.id
       );
 
@@ -241,7 +241,7 @@ export default function VsPage() {
     function cancelPendingMatch() {
       const m = matchRef.current;
       if (m && m.status === "pending") {
-        console.log("🧹 ยกเลิก pending match ที่ค้างอยู่:", m.id);
+        console.log("ยกเลิก pending match ที่ค้างอยู่:", m.id);
         supabase
           .from("vs_matches")
           .update({ status: "cancelled" })
@@ -286,14 +286,14 @@ export default function VsPage() {
             >
               {loading
                 ? "กำลังค้นหาคู่แข่ง..."
-                : "🎲 หาคู่แข่งแบบสุ่ม"}
+                : "หาคู่แข่งแบบสุ่ม"}
             </GlassButton>
 
             <GlassButton
               variant="ghost"
               disabled={loading}
             >
-              🔗 ท้าเพื่อนด้วยลิงก์
+              ท้าเพื่อนด้วยลิงก์
             </GlassButton>
 
             {error && (
@@ -307,8 +307,6 @@ export default function VsPage() {
         {/* กำลังรอคู่แข่ง */}
         {match?.status === "pending" && (
           <>
-            <div className="text-5xl">⚔️</div>
-
             <p className="font-display text-lg font-semibold text-plum-deep">
               กำลังค้นหาคู่แข่ง...
             </p>
@@ -336,8 +334,6 @@ export default function VsPage() {
         {/* กำลังเข้าสู่การแข่งขัน */}
         {match?.status === "active" && (
           <>
-            <div className="text-5xl">🔥</div>
-
             <p className="font-display text-lg font-semibold text-plum-deep">
               จับคู่สำเร็จ!
             </p>
@@ -351,8 +347,6 @@ export default function VsPage() {
         {/* Match ถูกยกเลิก */}
         {match?.status === "cancelled" && (
           <>
-            <div className="text-5xl">😢</div>
-
             <p className="font-display text-lg font-semibold text-plum-deep">
               การแข่งขันถูกยกเลิก
             </p>

@@ -64,17 +64,17 @@ export default async function Home() {
 
         <Link href={user ? "/pushup" : "/login"} className="w-full max-w-xs">
           <GlassButton variant="primary" className="w-full py-4 text-lg">
-            🏋️ เริ่มวิดพื้น
+            เริ่มวิดพื้น
           </GlassButton>
         </Link>
 
         <div className="flex gap-3 text-sm">
           <Link href={user ? "/vs" : "/login"} className="text-plum-deep underline underline-offset-4">
-            ⚔️ แข่งกับเพื่อน
+            แข่งกับเพื่อน
           </Link>
           <span className="text-ink/30">·</span>
           <Link href={user ? "/boss" : "/login"} className="text-sun-deep underline underline-offset-4">
-            🐉 โหมดปราบบอส
+            โหมดปราบบอส
           </Link>
         </div>
       </section>
@@ -93,7 +93,7 @@ export default async function Home() {
       <section className="px-6 pb-16 md:px-10">
         <div className="glass mx-auto max-w-xl rounded-[24px] p-5">
           <h2 className="font-display text-lg font-bold text-primary-deep">
-            🏆 อันดับเดือนนี้
+            อันดับเดือนนี้
           </h2>
           {rows.length === 0 ? (
             <p className="mt-3 text-sm text-ink/50">ยังไม่มีใครวิดพื้นเดือนนี้เลย เป็นคนแรกสิ!</p>
