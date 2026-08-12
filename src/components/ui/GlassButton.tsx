@@ -1,45 +1,89 @@
-import { ButtonHTMLAttributes, ReactNode } from "react";
+"use client";
 
-type Variant = "primary" | "sun" | "plum" | "ghost";
+import type { ButtonHTMLAttributes, ReactNode } from "react";
 
-const variantStyles: Record<Variant, string> = {
-  primary:
-    "bg-gradient-to-br from-primary/90 to-primary-deep/90 text-white border-white/40 shadow-[0_8px_28px_rgba(14,107,57,0.35)]",
-  sun:
-    "bg-gradient-to-br from-sun/90 to-sun-deep/90 text-white border-white/40 shadow-[0_8px_28px_rgba(201,127,22,0.35)]",
-  plum:
-    "bg-gradient-to-br from-plum/90 to-plum-deep/90 text-white border-white/40 shadow-[0_8px_28px_rgba(86,75,209,0.35)]",
-  ghost:
-    "bg-white/30 text-ink border-white/60 shadow-[0_8px_28px_rgba(14,107,57,0.12)]",
-};
-
-interface GlassButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: Variant;
-  icon?: ReactNode;
+interface GlassButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement> {
+  children: ReactNode;
+  variant?: "primary" | "secondary" | "plum" | "ghost";
 }
 
 export default function GlassButton({
-  variant = "primary",
-  icon,
-  className = "",
   children,
+  variant = "primary",
+  className = "",
   ...props
 }: GlassButtonProps) {
   return (
     <button
-      className={[
-        "inline-flex items-center justify-center gap-2",
-        "rounded-[20px] border backdrop-blur-xl backdrop-saturate-150",
-        "px-6 py-3 font-display font-semibold text-[15px] tracking-tight",
-        "transition-transform duration-150 active:scale-[0.97]",
-        "hover:brightness-105 disabled:opacity-50 disabled:pointer-events-none",
-        variantStyles[variant],
-        className,
-      ].join(" ")}
       {...props}
+      className={`
+        group relative overflow-hidden
+        rounded-2xl
+        font-display font-semibold
+        transition-all duration-200
+        active:scale-[0.96]
+        hover:-translate-y-0.5
+        disabled:cursor-not-allowed
+        disabled:opacity-50
+        disabled:hover:translate-y-0
+        disabled:active:scale-100
+
+        ${
+          variant === "primary"
+            ? `
+              bg-primary
+              text-white
+              shadow-lg shadow-primary/20
+              hover:bg-primary-deep
+              hover:shadow-xl hover:shadow-primary/25
+            `
+            : variant === "plum"
+              ? `
+                bg-plum
+                text-white
+                shadow-lg shadow-plum/20
+                hover:bg-plum-deep
+                hover:shadow-xl hover:shadow-plum/25
+              `
+              : variant === "ghost"
+                ? `
+                  glass
+                  text-ink
+                  hover:bg-white/70
+                  hover:shadow-lg
+                `
+                : `
+                  glass
+                  text-primary-deep
+                  hover:bg-white/70
+                  hover:shadow-lg
+                `
+        }
+
+        ${className}
+      `}
     >
-      {icon}
-      {children}
+      {/* Shine effect */}
+      <span
+        className="
+          pointer-events-none
+          absolute inset-0
+          -translate-x-full
+          bg-gradient-to-r
+          from-transparent
+          via-white/25
+          to-transparent
+          transition-transform
+          duration-700
+          group-hover:translate-x-full
+        "
+      />
+
+      {/* Button content */}
+      <span className="relative z-10 flex items-center justify-center gap-2">
+        {children}
+      </span>
     </button>
   );
 }

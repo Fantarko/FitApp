@@ -11,6 +11,7 @@ type Boss = {
 
 export default async function BossListPage() {
   const supabase = await createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -23,55 +24,137 @@ export default async function BossListPage() {
   const list = (bosses ?? []) as Boss[];
 
   let defeatedBossIds = new Set<string>();
+
   if (user && list.length > 0) {
     const { data: progress } = await supabase
       .from("user_boss_progress")
       .select("boss_id, defeated_at")
       .eq("user_id", user.id)
       .not("defeated_at", "is", null);
-    defeatedBossIds = new Set((progress ?? []).map((p) => p.boss_id as string));
+
+    defeatedBossIds = new Set(
+      (progress ?? []).map((p) => p.boss_id as string)
+    );
   }
 
   return (
-    <main className="flex flex-1 flex-col items-center gap-8 px-6 py-10">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute top-0 right-1/4 h-96 w-96 rounded-full bg-sun/20 blur-3xl" />
+    <main className="relative flex min-h-screen flex-1 flex-col items-center overflow-hidden px-6 py-10">
+      {/* Animated background */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="animate-float absolute -right-32 -top-24 h-96 w-96 rounded-full bg-sun/15 blur-3xl" />
+
+        <div className="animate-float-slow absolute -left-32 top-1/3 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
+
+        <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-plum/10 blur-3xl" />
       </div>
 
-      <h1 className="font-display text-3xl font-bold text-sun-deep">โหมดปราบบอส</h1>
-      <p className="max-w-md text-center text-ink/60">
-        วิดพื้นแต่ละครั้งคือการโจมตี ปราบบอสให้ได้ก่อนหมดแรงเพื่อปลดล็อกด่านถัดไป
-      </p>
+      {/* Header */}
+      <div className="animate-fade-in mb-8 text-center">
+        <div className="mb-4 flex justify-center">
+          <span className="rounded-full bg-sun/10 px-4 py-2 text-xs font-bold tracking-wider text-sun-deep">
+            BOSS MODE
+          </span>
+        </div>
 
+        <h1 className="animate-slide-up font-display text-3xl font-bold text-sun-deep md:text-4xl">
+          โหมดปราบบอส
+        </h1>
+
+        <p
+          className="animate-slide-up mx-auto mt-3 max-w-md text-center leading-6 text-ink/60"
+          style={{ animationDelay: "120ms" }}
+        >
+          วิดพื้นแต่ละครั้งคือการโจมตี
+          <br />
+          ปราบบอสให้ได้ก่อนหมดแรงเพื่อปลดล็อกด่านถัดไป
+        </p>
+      </div>
+
+      {/* Boss list */}
       <div className="grid w-full max-w-md gap-3">
         {list.map((boss, i) => {
           const defeated = defeatedBossIds.has(boss.id);
-          const prevDefeated = i === 0 || defeatedBossIds.has(list[i - 1].id);
+
+          const prevDefeated =
+            i === 0 ||
+            defeatedBossIds.has(list[i - 1].id);
+
           const locked = !prevDefeated;
 
           const card = (
             <div
-              className={`glass flex items-center justify-between rounded-[20px] p-4 ${
-                locked ? "opacity-50" : ""
-              }`}
+              className={`
+                glass
+                animate-slide-up
+                group
+                flex
+                items-center
+                justify-between
+                rounded-[20px]
+                p-4
+                transition-all
+                duration-300
+
+                ${
+                  locked
+                    ? "opacity-50"
+                    : "hover:-translate-y-1 hover:shadow-xl hover:shadow-sun/10"
+                }
+
+                ${
+                  defeated
+                    ? "border-primary/20"
+                    : ""
+                }
+              `}
+              style={{
+                animationDelay: `${200 + i * 90}ms`,
+              }}
             >
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{locked ? "🔒" : boss.icon}</span>
+                {/* Boss character */}
+                <span
+                  className={`
+                    text-3xl
+                    transition-transform
+                    duration-300
+                    ${
+                      !locked
+                        ? "group-hover:scale-110"
+                        : ""
+                    }
+                  `}
+                >
+                  {locked ? "🔒" : boss.icon}
+                </span>
+
                 <div className="text-left">
                   <p className="font-display font-semibold">
                     ด่าน {boss.stage}: {boss.name_th}
                   </p>
-                  <p className="text-xs text-ink/50">HP {boss.hp}</p>
+
+                  <p className="mt-1 text-xs text-ink/50">
+                    HP {boss.hp}
+                  </p>
                 </div>
               </div>
-              {defeated && <span className="text-sm font-medium text-primary-deep">✅ ปราบแล้ว</span>}
+
+              {defeated && (
+                <span className="text-sm font-medium text-primary-deep">
+                  ปราบแล้ว
+                </span>
+              )}
             </div>
           );
 
           return locked || !user ? (
             <div key={boss.id}>{card}</div>
           ) : (
-            <Link key={boss.id} href={`/boss/${boss.stage}`}>
+            <Link
+              key={boss.id}
+              href={`/boss/${boss.stage}`}
+              className="block"
+            >
               {card}
             </Link>
           );

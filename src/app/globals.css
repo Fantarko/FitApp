@@ -1,68 +1,118 @@
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap");
-@import "tailwindcss";
+/* =========================
+   Animations
+========================= */
 
-@theme {
-  /* ---- Brand: "living-room green" — sporty but warm, not neon/AI-default ---- */
-  --color-ink: #14251b;              /* near-black text, tinted green */
-  --color-bg: #f7faf4;               /* warm off-white, faint green tint */
-  --color-bg-deep: #eef4e8;          /* secondary surface */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
 
-  --color-primary: #1fae5b;          /* leaf green — primary actions */
-  --color-primary-deep: #0e6b39;     /* pressed / borders / headlines */
-  --color-primary-tint: #e4f5ea;     /* chips, subtle fills */
-
-  --color-sun: #f4a93b;              /* accent 1 — streaks, badges, energy */
-  --color-sun-deep: #c97f16;
-
-  --color-plum: #7c6ff0;             /* accent 2 — VS mode, competition */
-  --color-plum-deep: #564bd1;
-
-  --font-display: "Space Grotesk", "Noto Sans Thai", sans-serif;
-  --font-body: "Inter", "Noto Sans Thai", sans-serif;
-
-  --radius-glass: 20px;
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-body {
-  background: var(--color-bg);
-  color: var(--color-ink);
-  font-family: var(--font-body);
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-h1, h2, h3, .font-display {
-  font-family: var(--font-display);
+@keyframes float {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, -20px, 0);
+  }
 }
 
-/* ---- Glassmorphism building blocks ---- */
+@keyframes float-slow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
 
-.glass {
-  background: rgba(255, 255, 255, 0.45);
-  backdrop-filter: blur(16px) saturate(160%);
-  -webkit-backdrop-filter: blur(16px) saturate(160%);
-  border: 1px solid rgba(255, 255, 255, 0.6);
-  box-shadow:
-    0 8px 32px rgba(14, 107, 57, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  50% {
+    transform: translate3d(15px, 20px, 0);
+  }
 }
 
-.glass-deep {
-  background: rgba(20, 37, 27, 0.35);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  box-shadow: 0 8px 32px rgba(14, 107, 57, 0.25);
+@keyframes medal-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+  }
+
+  70% {
+    transform: scale(1.15);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
-/* focus ring visible for keyboard nav (accessibility floor) */
-:focus-visible {
-  outline: 2px solid var(--color-primary-deep);
-  outline-offset: 2px;
+/* =========================
+   Animation Classes
+========================= */
+
+.animate-fade-in {
+  animation: fade-in 0.7s ease-out both;
 }
+
+.animate-slide-up {
+  animation: slide-up 0.7s ease-out both;
+}
+
+.animate-float {
+  animation: float 7s ease-in-out infinite;
+}
+
+.animate-float-slow {
+  animation: float-slow 11s ease-in-out infinite;
+}
+
+.animate-medal {
+  animation: medal-pop 0.5s ease-out both;
+}
+
+/* =========================
+   Hover
+========================= */
+
+.hover-float {
+  transition:
+    transform 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.hover-float:hover {
+  transform: translateY(-4px);
+}
+
+/* =========================
+   Reduced Motion
+========================= */
 
 @media (prefers-reduced-motion: reduce) {
-  * {
+  *,
+  *::before,
+  *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

@@ -258,132 +258,228 @@ export default function VsPage() {
     };
   }, [supabase]);
 
-  return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-4 py-10">
-      <div className="mb-8 text-center">
-        <h1 className="font-display text-3xl font-bold text-plum-deep">
-          ท้าแข่งวิดพื้น
-        </h1>
+ return (
+  <main className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-10">
 
-        <p className="mt-3 max-w-md text-center text-ink/60">
-          เลือกคู่แข่ง แล้วทั้งคู่วิดพื้นในเวลาที่กำหนด
-          ใครทำได้มากกว่าและถูกท่าชนะ
-        </p>
-      </div>
+    {/* =========================
+        Animated Background
+    ========================= */}
+    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <div className="animate-float absolute -left-32 -top-20 h-80 w-80 rounded-full bg-plum/15 blur-3xl" />
 
-      <div className="glass grid w-full max-w-md gap-4 rounded-[24px] p-6 text-center">
-        {/* ยังไม่ได้สร้าง Match */}
-        {!match && (
-          <>
-            <p className="font-display font-semibold text-plum-deep">
+      <div className="animate-float-slow absolute -right-32 top-1/3 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+
+      <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sun/10 blur-3xl" />
+    </div>
+
+    {/* =========================
+        Header
+    ========================= */}
+    <div className="animate-fade-in mb-8 text-center">
+      <h1 className="font-display text-3xl font-bold text-plum-deep md:text-4xl">
+        ท้าแข่งวิดพื้น
+      </h1>
+      <p className="animate-slide-up mt-3 max-w-md text-center text-ink/60">
+        เลือกคู่แข่ง แล้วทั้งคู่วิดพื้นในเวลาที่กำหนด
+        <br />
+        ใครทำได้มากกว่าและถูกท่าชนะ
+      </p>
+    </div>
+    {/* =========================
+        Main Match Card
+    ========================= */}
+    <div className="animate-slide-up glass grid w-full max-w-md gap-4 rounded-[24px] p-6 text-center shadow-xl">
+
+      {/* =========================
+          ยังไม่ได้สร้าง Match
+      ========================= */}
+      {!match && (
+        <div className="animate-fade-in grid gap-4">
+          <div>
+            <p className="font-display text-lg font-semibold text-plum-deep">
               พร้อมท้าคนอื่นหรือยัง?
             </p>
 
-            <GlassButton
-              variant="plum"
-              onClick={findRandomMatch}
-              disabled={loading}
-            >
-              {loading
-                ? "กำลังค้นหาคู่แข่ง..."
-                : "หาคู่แข่งแบบสุ่ม"}
-            </GlassButton>
+            <p className="mt-1 text-sm text-ink/50">
+              ระบบจะสุ่มผู้เล่นที่กำลังรอแข่งให้คุณ
+            </p>
+          </div>
 
-            <GlassButton
-              variant="ghost"
-              disabled={loading}
-            >
-              ท้าเพื่อนด้วยลิงก์
-            </GlassButton>
+          {/* Random Match */}
+          <GlassButton
+            variant="plum"
+            onClick={findRandomMatch}
+            disabled={loading}
+            className="transition-all duration-200 hover:scale-[1.03] hover:shadow-lg active:scale-[0.97]"
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
+                กำลังค้นหาคู่แข่ง...
+              </span>
+            ) : (
+              "หาคู่แข่งแบบสุ่ม"
+            )}
+          </GlassButton>
 
-            {error && (
+          {/* Invite Friend */}
+          <GlassButton
+            variant="ghost"
+            disabled={loading}
+            className="transition-all duration-200 hover:scale-[1.02]"
+          >
+            ท้าเพื่อนด้วยลิงก์
+          </GlassButton>
+
+          {error && (
+            <div className="animate-fade-in rounded-xl bg-red-500/10 px-4 py-3">
               <p className="text-sm text-red-500">
                 {error}
               </p>
-            )}
-          </>
-        )}
+            </div>
+          )}
 
-        {/* กำลังรอคู่แข่ง */}
-        {match?.status === "pending" && (
-          <>
-            <p className="font-display text-lg font-semibold text-plum-deep">
+        </div>
+      )}
+
+      {/* =========================
+          กำลังรอคู่แข่ง
+      ========================= */}
+      {match?.status === "pending" && (
+        <div className="animate-fade-in grid gap-4">
+          <div>
+            <p className="font-display text-xl font-bold text-plum-deep">
               กำลังค้นหาคู่แข่ง...
             </p>
 
-            <p className="text-sm text-ink/60">
+            <p className="mt-1 text-sm text-ink/60">
               ระบบกำลังหาคนที่พร้อมแข่งกับคุณ
             </p>
+          </div>
 
-            <div className="mx-auto h-2 w-2/3 overflow-hidden rounded-full bg-black/10">
+          {/* Searching animation */}
+          <div className="mx-auto w-full max-w-xs">
+            <div className="h-2 overflow-hidden rounded-full bg-black/10">
               <div className="h-full w-1/2 animate-pulse rounded-full bg-plum-deep" />
             </div>
+          </div>
 
+          {/* Live searching indicator */}
+          <div className="flex items-center justify-center gap-2 text-sm text-plum-deep">
+            <span className="h-2 w-2 animate-ping rounded-full bg-plum-deep" />
+            <span>กำลังสแกนหาคู่แข่ง...</span>
+          </div>
+
+          {/* Match ID */}
+          <div className="rounded-xl bg-black/5 px-3 py-2">
             <p className="text-xs text-ink/40">
-              Match ID: {match.id}
+              Match ID
             </p>
 
-            {error && (
+            <p className="mt-1 break-all font-mono text-xs text-ink/60">
+              {match.id}
+            </p>
+          </div>
+
+          {error && (
+            <div className="animate-fade-in rounded-xl bg-red-500/10 px-4 py-3">
               <p className="text-sm text-red-500">
                 {error}
               </p>
-            )}
-          </>
-        )}
+            </div>
+          )}
 
-        {/* กำลังเข้าสู่การแข่งขัน */}
-        {match?.status === "active" && (
-          <>
-            <p className="font-display text-lg font-semibold text-plum-deep">
+        </div>
+      )}
+
+      {/* =========================
+          จับคู่สำเร็จ
+      ========================= */}
+      {match?.status === "active" && (
+        <div className="animate-fade-in flex flex-col items-center gap-4">
+          <div>
+            <p className="font-display text-2xl font-bold text-plum-deep">
               จับคู่สำเร็จ!
             </p>
 
-            <p className="text-sm text-ink/60">
-              กำลังเข้าสู่การแข่งขัน...
+            <p className="mt-1 text-sm text-ink/60">
+              พบคู่แข่งแล้ว
             </p>
-          </>
-        )}
+          </div>
 
-        {/* Match ถูกยกเลิก */}
-        {match?.status === "cancelled" && (
-          <>
-            <p className="font-display text-lg font-semibold text-plum-deep">
+          {/* Loading into VS */}
+          <div className="mt-2 flex items-center gap-2 text-sm text-plum-deep">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-plum/30 border-t-plum-deep" />
+            กำลังเข้าสู่การแข่งขัน...
+          </div>
+
+        </div>
+      )}
+
+      {/* =========================
+          Match ถูกยกเลิก
+      ========================= */}
+      {match?.status === "cancelled" && (
+        <div className="animate-fade-in grid gap-4">
+          <div>
+            <p className="font-display text-xl font-bold text-plum-deep">
               การแข่งขันถูกยกเลิก
             </p>
 
-            <GlassButton
-              variant="plum"
-              onClick={() => {
-                setMatch(null);
-                setError("");
-              }}
-            >
-              ลองใหม่
-            </GlassButton>
-          </>
-        )}
+            <p className="mt-1 text-sm text-ink/60">
+              คู่แข่งออกจากการค้นหาก่อนจับคู่
+            </p>
+          </div>
 
-        {/* Match มีปัญหา */}
-        {match?.status === "disputed" && (
-          <>
-            <div className="text-5xl">⚠️</div>
+          <GlassButton
+            variant="plum"
+            onClick={() => {
+              setMatch(null);
+              setError("");
+            }}
+            className="transition-all duration-200 hover:scale-[1.03]"
+          >
+            ลองใหม่
+          </GlassButton>
 
-            <p className="font-display text-lg font-semibold text-plum-deep">
+        </div>
+      )}
+
+      {/* =========================
+          Match มีปัญหา
+      ========================= */}
+      {match?.status === "disputed" && (
+        <div className="animate-fade-in grid gap-4">
+
+          <div className="animate-medal text-5xl">
+            ⚠️
+          </div>
+
+          <div>
+            <p className="font-display text-xl font-bold text-plum-deep">
               การแข่งขันมีข้อพิพาท
             </p>
 
-            <GlassButton
-              variant="plum"
-              onClick={() => {
-                setMatch(null);
-                setError("");
-              }}
-            >
-              กลับ
-            </GlassButton>
-          </>
-        )}
-      </div>
-    </main>
-  );
+            <p className="mt-1 text-sm text-ink/60">
+              ระบบตรวจพบปัญหาในการแข่งขัน
+            </p>
+          </div>
+
+          <GlassButton
+            variant="plum"
+            onClick={() => {
+              setMatch(null);
+              setError("");
+            }}
+            className="transition-all duration-200 hover:scale-[1.03]"
+          >
+            ← กลับ
+          </GlassButton>
+
+        </div>
+      )}
+
+    </div>
+  </main>
+);
 }

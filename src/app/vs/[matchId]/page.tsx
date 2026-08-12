@@ -30,8 +30,19 @@ export default function VsMatchPage() {
   // กำลังอ่าน Match ID
   if (!matchId) {
     return (
-      <main className="flex min-h-screen items-center justify-center px-4">
-        <div className="glass w-full max-w-md rounded-[28px] p-8 text-center">
+      <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
+        {/* Animated background */}
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+          <div className="animate-float absolute -left-32 -top-20 h-80 w-80 rounded-full bg-plum/15 blur-3xl" />
+          <div className="animate-float-slow absolute -right-32 top-1/3 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+          <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sun/10 blur-3xl" />
+        </div>
+
+        <div className="glass animate-fade-in w-full max-w-md rounded-[28px] p-8 text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-plum/10">
+            <span className="text-3xl animate-pulse">⚔️</span>
+          </div>
+
           <h1 className="font-display text-2xl font-bold text-plum-deep">
             กำลังเตรียมการแข่งขัน...
           </h1>
@@ -49,27 +60,84 @@ export default function VsMatchPage() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center px-4 py-8">
+    <main className="relative flex min-h-screen flex-col items-center overflow-hidden px-4 py-8">
+      {/* Animated background */}
+      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+        <div className="animate-float absolute -left-32 -top-20 h-80 w-80 rounded-full bg-plum/15 blur-3xl" />
+
+        <div className="animate-float-slow absolute -right-32 top-1/3 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+
+        <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sun/10 blur-3xl" />
+      </div>
+
       {/* Header */}
-      <div className="mb-6 w-full max-w-2xl">
+      <div className="animate-fade-in mb-6 w-full max-w-2xl">
         <button
           type="button"
           onClick={() => router.back()}
-          className="mb-5 text-sm text-ink/50 transition hover:text-ink"
+          className="
+            mb-5
+            text-sm
+            text-ink/50
+            transition-all
+            duration-200
+            hover:-translate-x-1
+            hover:text-ink
+          "
         >
           ← กลับ
         </button>
 
         <div className="text-center">
-          <p className="text-sm font-medium uppercase tracking-widest text-plum-deep/70">
-            VS MATCH
-          </p>
+          {/* VS Badge */}
+          <div className="animate-slide-up mb-4 flex justify-center">
+            <span
+              className="
+                inline-flex
+                items-center
+                gap-2
+                rounded-full
+                bg-plum/10
+                px-4
+                py-2
+                text-xs
+                font-bold
+                tracking-[0.2em]
+                text-plum-deep
+              "
+            >
+              <span className="h-2 w-2 animate-pulse rounded-full bg-plum" />
+              VS MATCH
+              <span className="h-2 w-2 animate-pulse rounded-full bg-plum" />
+            </span>
+          </div>
 
-          <h1 className="mt-2 font-display text-3xl font-bold text-plum-deep">
+          <h1
+            className="
+              animate-slide-up
+              font-display
+              text-3xl
+              font-bold
+              text-plum-deep
+              md:text-4xl
+            "
+            style={{ animationDelay: "100ms" }}
+          >
             เตรียมตัวให้พร้อม
           </h1>
 
-          <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-ink/60">
+          <p
+            className="
+              animate-slide-up
+              mx-auto
+              mt-3
+              max-w-md
+              text-sm
+              leading-6
+              text-ink/60
+            "
+            style={{ animationDelay: "180ms" }}
+          >
             เตรียมท่าวิดพื้นให้พร้อม
             <br />
             เมื่อเริ่มการแข่งขัน พยายามทำให้ได้มากที่สุด
@@ -78,7 +146,18 @@ export default function VsMatchPage() {
       </div>
 
       {/* Match information */}
-      <div className="glass mb-5 w-full max-w-2xl rounded-[24px] p-4">
+      <div
+        className="
+          glass
+          animate-slide-up
+          mb-5
+          w-full
+          max-w-2xl
+          rounded-[24px]
+          p-4
+        "
+        style={{ animationDelay: "250ms" }}
+      >
         <div className="flex items-center justify-between">
           <div>
             <p className="text-xs text-ink/40">
@@ -90,10 +169,23 @@ export default function VsMatchPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 rounded-full bg-black/5 px-3 py-2">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
+          <div
+            className="
+              flex
+              items-center
+              gap-2
+              rounded-full
+              bg-primary-tint
+              px-3
+              py-2
+              transition-all
+              duration-300
+              hover:scale-105
+            "
+          >
+            <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
 
-            <span className="text-xs font-medium text-ink/60">
+            <span className="text-xs font-medium text-primary-deep">
               พร้อมแข่งขัน
             </span>
           </div>
@@ -101,11 +193,19 @@ export default function VsMatchPage() {
       </div>
 
       {/* Camera */}
-      <div className="w-full max-w-2xl">
-        <PushupCamera
-          mode="vs"
-          matchId={matchId}
-        />
+      <div
+        className="animate-slide-up w-full max-w-2xl"
+        style={{ animationDelay: "350ms" }}
+      >
+        <div className="relative">
+          {/* Glow รอบกล้อง */}
+          <div className="pointer-events-none absolute -inset-2 -z-10 rounded-[30px] bg-plum/10 blur-2xl" />
+
+          <PushupCamera
+            mode="vs"
+            matchId={matchId}
+          />
+        </div>
       </div>
     </main>
   );
