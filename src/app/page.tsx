@@ -31,11 +31,11 @@ export default async function Home() {
     streak = streakRes.data ?? 0;
   }
 
-  const { data: leaderboard } = await supabase
-    .from("v_monthly_leaderboard")
-    .select("user_id, display_name, avatar_url, month_reps")
-    .order("month_reps", { ascending: false })
-    .limit(10);
+  const { data: leaderboard, error: leaderboardError } =
+      await supabase.rpc("get_monthly_leaderboard");
+      if (leaderboardError) {
+        console.error("Leaderboard error:", leaderboardError);
+      }
 
   const rows = (leaderboard ?? []) as LeaderboardRow[];
   const medals = ["🥇", "🥈", "🥉"];
