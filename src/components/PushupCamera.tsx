@@ -40,6 +40,8 @@ type VsMatch = {
   challenger_reps: number;
   opponent_reps: number;
   status: "pending" | "active" | "completed" | "cancelled" | "disputed";
+  duration_seconds: number;
+  winner_id: string | null;
 };
 
 const GOAL = 30;
@@ -80,9 +82,16 @@ export default function PushupCamera({
   const [vsReady, setVsReady] = useState(false);
   // 6) คะแนนของคู่แข่ง (รับผ่าน Realtime)
   const [opponentReps, setOpponentReps] = useState(0);
+  const [opponentName, setOpponentName] = useState<string | null>(null);
+  const [matchDuration, setMatchDuration] = useState(60);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [vsResult, setVsResult] = useState<"win" | "lose" | "tie" | null>(null);
+  const matchStartedAtRef = useRef<number | null>(null);
 
   const vsRoleRef = useRef<"challenger" | "opponent" | null>(null);
   const vsReadyRef = useRef(false);
+  const vsTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const vsFinishedRef = useRef(false);
   const statusRef = useRef<Status>("idle");
   useEffect(() => {
     statusRef.current = status;
@@ -93,6 +102,10 @@ export default function PushupCamera({
     if (countdownTimerRef.current) {
       clearInterval(countdownTimerRef.current);
       countdownTimerRef.current = null;
+    }
+    if (vsTimerRef.current) {
+      clearInterval(vsTimerRef.current);
+      vsTimerRef.current = null;
     }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -275,6 +288,19 @@ export default function PushupCamera({
         startTimeRef.current = performance.now();
         setReps(0);
         setStatus("running");
+
+        if (mode === "vs") {
+          const startedAtMs = matchStartedAtRef.current ?? Date.now();
+          const tick = () => {
+            const remaining = matchDuration - Math.floor((Date.now() - startedAtMs) / 1000);
+            setTimeLeft(Math.max(0, remaining));
+            if (remaining <= 0) {
+              finishVsMatch();
+            }
+          };
+          tick();
+          vsTimerRef.current = setInterval(tick, 500);
+        }
       } else {
         setCountdownNumber(n);
       }
@@ -360,7 +386,7 @@ export default function PushupCamera({
       const { data: match, error } = await supabase
         .from("vs_matches")
         .select(
-          "id, challenger_id, opponent_id, challenger_reps, opponent_reps, status"
+          "id, challenger_id, opponent_id, challenger_reps, opponent_reps, status, duration_seconds, started_at"
         )
         .eq("id", matchId)
         .single();
@@ -372,18 +398,40 @@ export default function PushupCamera({
         return;
       }
 
+      let opponentId: string | null = null;
+
       if (match.challenger_id === user.id) {
         setVsRole("challenger");
         vsRoleRef.current = "challenger";
+        opponentId = match.opponent_id;
       } else if (match.opponent_id === user.id) {
         setVsRole("opponent");
         vsRoleRef.current = "opponent";
+        opponentId = match.challenger_id;
       } else {
         setErrorMsg("คุณไม่มีสิทธิ์เข้าร่วมการแข่งขันนี้");
         return;
       }
 
+      if (opponentId) {
+        const { data: opponentProfile } = await supabase
+          .from("profiles")
+          .select("display_name")
+          .eq("id", opponentId)
+          .single();
+        if (!cancelled) {
+          setOpponentName(opponentProfile?.display_name ?? "คู่แข่ง");
+        }
+      }
+
       if (!cancelled) {
+        setMatchDuration(match.duration_seconds ?? 60);
+        matchStartedAtRef.current = match.started_at
+          ? new Date(match.started_at).getTime()
+          : Date.now();
+        setOpponentReps(
+          vsRoleRef.current === "challenger" ? match.opponent_reps ?? 0 : match.challenger_reps ?? 0
+        );
         setVsReady(true);
         vsReadyRef.current = true;
       }
@@ -419,19 +467,60 @@ export default function PushupCamera({
             setOpponentReps(updated.challenger_reps ?? 0);
           }
 
-          if (updated.status !== "active") {
-            console.log("VS status changed:", updated.status);
+          if (updated.status === "completed" && !vsFinishedRef.current) {
+            vsFinishedRef.current = true;
+            if (vsTimerRef.current) {
+              clearInterval(vsTimerRef.current);
+              vsTimerRef.current = null;
+            }
+            const myId = vsRoleRef.current === "challenger" ? updated.challenger_id : updated.opponent_id;
+            setVsResult(
+              !updated.winner_id ? "tie" : updated.winner_id === myId ? "win" : "lose"
+            );
+            stopStream();
+            setStatus("done");
           }
         }
       )
-      .subscribe((status) => {
-        console.log(`VS score realtime: ${status}`);
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [mode, matchId, supabase]);
+  }, [mode, matchId, supabase, stopStream]);
+
+  async function finishVsMatch() {
+    if (!matchId || vsFinishedRef.current) return;
+    vsFinishedRef.current = true;
+    if (vsTimerRef.current) {
+      clearInterval(vsTimerRef.current);
+      vsTimerRef.current = null;
+    }
+
+    const durationSeconds = Math.round((performance.now() - startTimeRef.current) / 1000);
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      await supabase.from("pushup_sessions").insert({
+        user_id: user.id,
+        rep_count: counterRef.current.getCount(),
+        duration_seconds: durationSeconds,
+        landmark_log: logRef.current,
+        low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+        match_id: matchId,
+      });
+    }
+
+    const { data, error } = await supabase.rpc("finish_vs_match", { p_match_id: matchId });
+    if (!error && data) {
+      const result = data as VsMatch;
+      const myId = vsRoleRef.current === "challenger" ? result.challenger_id : result.opponent_id;
+      setVsResult(!result.winner_id ? "tie" : result.winner_id === myId ? "win" : "lose");
+    }
+    stopStream();
+    setStatus("done");
+  }
 
   return (
     <div className="flex w-full max-w-2xl flex-col items-center gap-6">
@@ -518,54 +607,48 @@ export default function PushupCamera({
             onClick={handleResetCalibration}
             className="absolute right-3 top-3 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur"
           >
-             รีเซ็ตกล้อง
+            🔄 รีเซ็ตกล้อง
           </button>
         )}
       </div>
 
       <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} />
 
-      {/* 7) แสดงคะแนนคู่แข่งใต้ RepRing */}
-      {mode === "vs" && (
-        <div className="grid w-full max-w-md grid-cols-2 gap-3">
-          <div className="glass rounded-2xl p-4 text-center">
-            <p className="text-sm text-ink/50">คุณ</p>
-            <p className="font-display text-3xl font-bold text-plum-deep">{reps}</p>
-            <p className="text-xs text-ink/40">ครั้ง</p>
-          </div>
-
-          <div className="glass rounded-2xl p-4 text-center">
-            <p className="text-sm text-ink/50">คู่แข่ง</p>
+      {/* VS: timer, opponent identity, tug-of-war pressure bar */}
+      {mode === "vs" && (status === "running" || status === "countdown" || status === "calibrating") && (
+        <div className="w-full max-w-md text-center">
+          {timeLeft !== null && (
             <p className="font-display text-3xl font-bold text-plum-deep">
-              {opponentReps}
+              ⏱️ {timeLeft} วิ
             </p>
-            <p className="text-xs text-ink/40">ครั้ง</p>
-          </div>
-        </div>
-      )}
-
-      {/* 11) แสดงบทบาท VS ก่อนปุ่มเริ่ม */}
-      {mode === "vs" && (
-        <div className="glass w-full max-w-md rounded-2xl p-4 text-center">
-          <p className="text-sm text-ink/50">บทบาทของคุณ</p>
-          <p className="mt-1 font-display text-xl font-bold text-plum-deep">
-            {vsRole === "challenger"
-              ? "⚔️ Challenger"
-              : vsRole === "opponent"
-                ? "⚔️ Opponent"
-                : "กำลังตรวจสอบ..."}
+          )}
+          <p className="mt-1 text-sm text-ink/60">
+            VS {opponentName ?? "คู่แข่ง"}
           </p>
 
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <div>
-              <p className="text-xs text-ink/40">คุณ</p>
-              <p className="text-2xl font-bold">{reps}</p>
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="glass rounded-2xl p-4 text-center">
+              <p className="text-sm text-ink/50">คุณ</p>
+              <p className="font-display text-3xl font-bold text-plum-deep">{reps}</p>
             </div>
+            <div className="glass rounded-2xl p-4 text-center">
+              <p className="text-sm text-ink/50">{opponentName ?? "คู่แข่ง"}</p>
+              <p className="font-display text-3xl font-bold text-plum-deep">{opponentReps}</p>
+            </div>
+          </div>
 
-            <div>
-              <p className="text-xs text-ink/40">คู่แข่ง</p>
-              <p className="text-2xl font-bold">{opponentReps}</p>
-            </div>
+          {/* tug-of-war: fill pushes toward whoever's behind, applying visual pressure */}
+          <div className="mt-3 h-4 w-full overflow-hidden rounded-full bg-black/10">
+            <div
+              className="h-full bg-gradient-to-r from-plum to-plum-deep transition-all duration-300"
+              style={{
+                width: `${
+                  reps + opponentReps === 0
+                    ? 50
+                    : Math.round((reps / (reps + opponentReps)) * 100)
+                }%`,
+              }}
+            />
           </div>
         </div>
       )}
@@ -585,9 +668,14 @@ export default function PushupCamera({
             {status === "calibrating" ? "กำลังตั้งกล้อง..." : "เตรียมตัว..."}
           </GlassButton>
         ) : null}
-        {status === "running" ? (
+        {status === "running" && mode === "solo" ? (
           <GlassButton variant="ghost" onClick={handleFinish}>
             จบเซสชัน & บันทึก
+          </GlassButton>
+        ) : null}
+        {status === "running" && mode === "vs" ? (
+          <GlassButton variant="ghost" disabled>
+            กำลังแข่งขัน...
           </GlassButton>
         ) : null}
         {status === "saving" ? (
@@ -602,7 +690,22 @@ export default function PushupCamera({
         ) : null}
       </div>
 
-      {status === "done" && (
+      {status === "done" && mode === "vs" && vsResult && (
+        <p
+          className={`rounded-full px-4 py-1 text-sm font-medium ${
+            vsResult === "win"
+              ? "bg-primary-tint text-primary-deep"
+              : vsResult === "lose"
+                ? "bg-red-50 text-red-600"
+                : "bg-sun/20 text-sun-deep"
+          }`}
+        >
+          {vsResult === "win" ? "🏆 คุณชนะ!" : vsResult === "lose" ? "😢 คุณแพ้" : "🤝 เสมอ"}
+          {" — "}
+          {reps} ต่อ {opponentReps} ครั้ง
+        </p>
+      )}
+      {status === "done" && mode === "solo" && (
         <p className="rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
           บันทึกแล้ว — วิดพื้นไป {reps} ครั้ง
         </p>

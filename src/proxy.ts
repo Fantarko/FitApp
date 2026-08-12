@@ -33,6 +33,7 @@ export async function proxy(request: NextRequest) {
   const isProtectedRoute =
     request.nextUrl.pathname.startsWith("/pushup") ||
     request.nextUrl.pathname.startsWith("/vs") ||
+    request.nextUrl.pathname.startsWith("/boss") ||
     isAdminRoute;
 
   if (!user && isProtectedRoute) {
