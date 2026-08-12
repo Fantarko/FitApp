@@ -31,14 +31,15 @@ export default async function Home() {
     streak = streakRes.data ?? 0;
   }
 
-  const { data: leaderboard, error: leaderboardError } =
-      await supabase.rpc("get_monthly_leaderboard");
-      if (leaderboardError) {
-        console.error("Leaderboard error:", leaderboardError);
-      }
+    const {data: leaderboard,error: leaderboardError,
+    } = await supabase.rpc("get_monthly_leaderboard");
+        
+    if (leaderboardError) {
+          console.error("Leaderboard error:", leaderboardError);
+    }
 
-  const rows = (leaderboard ?? []) as LeaderboardRow[];
-  const medals = ["🥇", "🥈", "🥉"];
+    const rows = (leaderboard ?? []) as LeaderboardRow[];
+    const medals = ["🥇", "🥈", "🥉"];
 
   return (
     <main className="flex-1 flex flex-col">
