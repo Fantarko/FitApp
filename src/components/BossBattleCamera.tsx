@@ -427,7 +427,11 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
 
       <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
         {status === "idle" || status === "error" ? (
-          <GlassButton variant="primary" onClick={handleStart}>
+          <GlassButton
+            variant="primary"
+            onClick={handleStart}
+            className="min-h-[68px] min-w-[220px] px-12 text-xl"
+          >
             เริ่มสู้
           </GlassButton>
         ) : null}

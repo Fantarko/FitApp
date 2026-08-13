@@ -663,8 +663,13 @@ export default function PushupCamera({
             variant="primary"
             onClick={handleStart}
             disabled={mode === "vs" && !vsReady}
+            className="min-h-16 min-w-48 px-10 text-lg"
           >
-            {mode === "vs" && !vsReady ? "กำลังเตรียมการแข่งขัน..." : "เริ่มนับ"}
+            {mode === "vs" && !vsReady
+              ? "กำลังเตรียมการแข่งขัน..."
+              : mode === "vs"
+                ? "เริ่มสู้"
+                : "เริ่มนับ"}
           </GlassButton>
         ) : null}
         {status === "calibrating" || status === "countdown" ? (
