@@ -418,7 +418,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
             onClick={handleResetCalibration}
             className="absolute right-3 top-3 rounded-full bg-black/40 px-3 py-1.5 text-xs font-medium text-white backdrop-blur"
           >
-            🔄 รีเซ็ตกล้อง
+            รีเซ็ตกล้อง
           </button>
         )}
       </div>
@@ -428,7 +428,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
       <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
         {status === "idle" || status === "error" ? (
           <GlassButton variant="primary" onClick={handleStart}>
-            ⚔️ เริ่มสู้
+            เริ่มสู้
           </GlassButton>
         ) : null}
         {status === "calibrating" || status === "countdown" ? (
