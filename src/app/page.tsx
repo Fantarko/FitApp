@@ -22,16 +22,24 @@ export default async function Home() {
   let todayReps = 0;
   let monthReps = 0;
   let streak = 0;
+  let myBadges: { code: string; icon: string; name_th: string }[] = [];
 
   if (user) {
-    const [today, month, streakRes] = await Promise.all([
+    const [today, month, streakRes, badgeRes] = await Promise.all([
       supabase.rpc("get_today_reps", { p_user_id: user.id }),
       supabase.rpc("get_month_reps", { p_user_id: user.id }),
       supabase.rpc("get_current_streak", { p_user_id: user.id }),
+      supabase
+        .from("user_badges")
+        .select("badges(code, icon, name_th)")
+        .eq("user_id", user.id),
     ]);
     todayReps = today.data ?? 0;
     monthReps = month.data ?? 0;
     streak = streakRes.data ?? 0;
+    myBadges = (badgeRes.data ?? [])
+      .map((row) => row.badges)
+      .filter(Boolean) as unknown as { code: string; icon: string; name_th: string }[];
   }
 
     const {data: leaderboard,error: leaderboardError,
@@ -100,7 +108,25 @@ export default async function Home() {
         </div>
       </SlideIn>
 
-      <section className="px-6 pb-16 md:px-10">
+      {user && myBadges.length > 0 && (
+        <FadeIn delay={0.15} className="px-6 md:px-10">
+          <div className="glass mx-auto flex max-w-xl flex-wrap items-center gap-3 rounded-[20px] p-4">
+            <span className="text-sm font-medium text-ink/50">เหรียญของคุณ</span>
+            {myBadges.map((b) => (
+              <span
+                key={b.code}
+                title={b.name_th}
+                className="flex items-center gap-1 rounded-full bg-sun/15 px-3 py-1 text-sm"
+              >
+                <span>{b.icon}</span>
+                <span className="text-ink/70">{b.name_th}</span>
+              </span>
+            ))}
+          </div>
+        </FadeIn>
+      )}
+
+      <section className="px-6 pb-16 pt-8 md:px-10">
         <FadeIn delay={0.2} className="glass mx-auto max-w-xl rounded-[24px] p-5">
           <h2 className="font-display text-lg font-bold text-primary-deep">
             อันดับเดือนนี้

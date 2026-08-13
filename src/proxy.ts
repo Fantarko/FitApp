@@ -37,8 +37,11 @@ export async function proxy(request: NextRequest) {
     isAdminRoute;
 
   if (!user && isProtectedRoute) {
+    const originalPath = request.nextUrl.pathname + request.nextUrl.search;
     const url = request.nextUrl.clone();
     url.pathname = "/login";
+    url.search = "";
+    url.searchParams.set("next", originalPath);
     return NextResponse.redirect(url);
   }
 

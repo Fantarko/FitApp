@@ -90,6 +90,9 @@ export default function PushupCamera({
   const [matchDuration, setMatchDuration] = useState(60);
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const [vsResult, setVsResult] = useState<"win" | "lose" | "tie" | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportReason, setReportReason] = useState("");
+  const [reportStatus, setReportStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const matchStartedAtRef = useRef<number | null>(null);
 
   const vsRoleRef = useRef<"challenger" | "opponent" | null>(null);
@@ -266,6 +269,10 @@ export default function PushupCamera({
       setReps(0);
       setQualityIssues([]);
       setCalibrationProgress(0);
+      setVsResult(null);
+      setReportOpen(false);
+      setReportReason("");
+      setReportStatus("idle");
       setStatus("calibrating");
       rafRef.current = requestAnimationFrame(loop);
     } catch {
@@ -364,6 +371,8 @@ export default function PushupCamera({
         low_quality_ratio: qualityRef.current.getLowQualityRatio(),
         match_id: mode === "vs" ? matchId ?? null : null,
       });
+      // fire-and-forget: awards a streak badge if this session pushed the streak over a milestone
+      supabase.rpc("check_and_award_badges", { p_user_id: user.id });
     }
 
     setStatus("done");
@@ -522,8 +531,34 @@ export default function PushupCamera({
       const myId = vsRoleRef.current === "challenger" ? result.challenger_id : result.opponent_id;
       setVsResult(!result.winner_id ? "tie" : result.winner_id === myId ? "win" : "lose");
     }
+    if (user) {
+      // fire-and-forget: awards streak/VS-win/boss badges if this session/match qualifies
+      supabase.rpc("check_and_award_badges", { p_user_id: user.id });
+    }
     stopStream();
     setStatus("done");
+  }
+
+  async function submitCheatReport() {
+    if (!matchId || !reportReason.trim()) return;
+    setReportStatus("sending");
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setReportStatus("error");
+      return;
+    }
+
+    const { error } = await supabase.from("cheat_reports").insert({
+      match_id: matchId,
+      reported_by: user.id,
+      reason: reportReason.trim(),
+    });
+
+    setReportStatus(error ? "error" : "sent");
   }
 
   return (
@@ -663,13 +698,8 @@ export default function PushupCamera({
             variant="primary"
             onClick={handleStart}
             disabled={mode === "vs" && !vsReady}
-            className="min-h-16 min-w-48 px-10 text-lg"
           >
-            {mode === "vs" && !vsReady
-              ? "กำลังเตรียมการแข่งขัน..."
-              : mode === "vs"
-                ? "เริ่มสู้"
-                : "เริ่มนับ"}
+            {mode === "vs" && !vsReady ? "กำลังเตรียมการแข่งขัน..." : "เริ่มนับ"}
           </GlassButton>
         ) : null}
         {status === "calibrating" || status === "countdown" ? (
@@ -717,6 +747,45 @@ export default function PushupCamera({
               {reps} ต่อ {opponentReps} ครั้ง
             </p>
           </ScaleIn>
+
+          {reportStatus === "sent" ? (
+            <p className="text-xs text-ink/50">🚩 ส่งรายงานแล้ว ทีมงานจะตรวจสอบ</p>
+          ) : reportOpen ? (
+            <div className="glass w-full max-w-sm rounded-2xl p-4">
+              <p className="text-sm font-medium text-ink/70">รายงานคู่แข่ง</p>
+              <textarea
+                value={reportReason}
+                onChange={(e) => setReportReason(e.target.value)}
+                placeholder="อธิบายสั้นๆ ว่าสงสัยอะไร เช่น จำนวนครั้งเพิ่มเร็วผิดปกติ"
+                className="mt-2 w-full rounded-xl border border-black/10 bg-white/60 p-2 text-sm"
+                rows={2}
+              />
+              <div className="mt-2 flex gap-2">
+                <GlassButton
+                  variant="ghost"
+                  className="flex-1 text-sm"
+                  onClick={submitCheatReport}
+                  disabled={!reportReason.trim() || reportStatus === "sending"}
+                >
+                  {reportStatus === "sending" ? "กำลังส่ง..." : "ส่งรายงาน"}
+                </GlassButton>
+                <GlassButton variant="ghost" className="text-sm" onClick={() => setReportOpen(false)}>
+                  ยกเลิก
+                </GlassButton>
+              </div>
+              {reportStatus === "error" && (
+                <p className="mt-1 text-xs text-red-600">ส่งไม่สำเร็จ ลองอีกครั้ง</p>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="text-xs text-ink/40 underline underline-offset-4"
+            >
+              🚩 รายงานคู่แข่ง
+            </button>
+          )}
         </>
       )}
       {status === "done" && mode === "solo" && (

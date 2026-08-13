@@ -17,7 +17,12 @@ type Match = {
     | "cancelled"
     | "disputed";
   duration_seconds: number;
+  invite_code: string | null;
 };
+
+function randomInviteCode(): string {
+  return Math.random().toString(36).slice(2, 8).toUpperCase();
+}
 
 export default function VsPage() {
   const router = useRouter();
@@ -25,8 +30,59 @@ export default function VsPage() {
   const [supabase] = useState(() => createClient());
 
   const [loading, setLoading] = useState(false);
+  const [inviteLoading, setInviteLoading] = useState(false);
   const [match, setMatch] = useState<Match | null>(null);
   const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  async function createInviteMatch() {
+    if (inviteLoading || loading) return;
+    setInviteLoading(true);
+    setError("");
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      setError("กรุณาเข้าสู่ระบบก่อนแข่งขัน");
+      setInviteLoading(false);
+      return;
+    }
+
+    const code = randomInviteCode();
+    const { data, error: insertError } = await supabase
+      .from("vs_matches")
+      .insert({
+        challenger_id: user.id,
+        invite_code: code,
+        duration_seconds: 60,
+        status: "pending",
+      })
+      .select("id, challenger_id, opponent_id, status, duration_seconds, invite_code")
+      .single();
+
+    if (insertError || !data) {
+      setError(insertError?.message || "สร้างลิงก์ท้าแข่งไม่สำเร็จ");
+      setInviteLoading(false);
+      return;
+    }
+
+    setMatch(data as Match);
+    setInviteLoading(false);
+  }
+
+  async function copyInviteLink() {
+    if (!match?.invite_code) return;
+    const url = `${window.location.origin}/vs/invite/${match.invite_code}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setError("คัดลอกลิงก์ไม่สำเร็จ ลองคัดลอกเองจากช่องด้านบน");
+    }
+  }
 
   // เก็บ match ปัจจุบันไว้ใน ref ให้ cleanup อ่านค่าล่าสุดได้เสมอ
   // (ไม่ใช้ useEffect cleanup ปกติ เพราะ effect ตัวจับ match นี้รันแค่ตอน mount)
@@ -325,10 +381,11 @@ export default function VsPage() {
           {/* Invite Friend */}
           <GlassButton
             variant="ghost"
-            disabled={loading}
+            onClick={createInviteMatch}
+            disabled={loading || inviteLoading}
             className="transition-all duration-200 hover:scale-[1.02]"
           >
-            ท้าเพื่อนด้วยลิงก์
+            {inviteLoading ? "กำลังสร้างลิงก์..." : "ท้าเพื่อนด้วยลิงก์"}
           </GlassButton>
 
           {error && (
@@ -349,11 +406,13 @@ export default function VsPage() {
         <div className="animate-fade-in grid gap-4">
           <div>
             <p className="font-display text-xl font-bold text-plum-deep">
-              กำลังค้นหาคู่แข่ง...
+              {match.invite_code ? "รอเพื่อนกดลิงก์..." : "กำลังค้นหาคู่แข่ง..."}
             </p>
 
             <p className="mt-1 text-sm text-ink/60">
-              ระบบกำลังหาคนที่พร้อมแข่งกับคุณ
+              {match.invite_code
+                ? "ส่งลิงก์นี้ให้เพื่อน พอเขากดปุ๊บจะเริ่มแข่งทันที"
+                : "ระบบกำลังหาคนที่พร้อมแข่งกับคุณ"}
             </p>
           </div>
 
@@ -367,8 +426,24 @@ export default function VsPage() {
           {/* Live searching indicator */}
           <div className="flex items-center justify-center gap-2 text-sm text-plum-deep">
             <span className="h-2 w-2 animate-ping rounded-full bg-plum-deep" />
-            <span>กำลังสแกนหาคู่แข่ง...</span>
+            <span>{match.invite_code ? "รอเพื่อนอยู่..." : "กำลังสแกนหาคู่แข่ง..."}</span>
           </div>
+
+          {match.invite_code && (
+            <div className="rounded-xl bg-black/5 px-3 py-3">
+              <p className="text-xs text-ink/40">ลิงก์ท้าแข่ง</p>
+              <p className="mt-1 break-all font-mono text-xs text-plum-deep">
+                {`${typeof window !== "undefined" ? window.location.origin : ""}/vs/invite/${match.invite_code}`}
+              </p>
+              <GlassButton
+                variant="ghost"
+                onClick={copyInviteLink}
+                className="mt-2 w-full text-sm"
+              >
+                {copied ? "คัดลอกแล้ว ✓" : "📋 คัดลอกลิงก์"}
+              </GlassButton>
+            </div>
+          )}
 
           {/* Match ID */}
           <div className="rounded-xl bg-black/5 px-3 py-2">

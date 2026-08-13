@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import GlassButton from "@/components/ui/GlassButton";
 import ScaleIn from "@/components/animation/ScaleIn";
@@ -8,6 +9,8 @@ import ScaleIn from "@/components/animation/ScaleIn";
 export default function LoginPage() {
   const [consent, setConsent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const searchParams = useSearchParams();
+  const next = searchParams.get("next") || "/";
 
   async function handleGoogleLogin() {
     setLoading(true);
@@ -15,7 +18,7 @@ export default function LoginPage() {
     await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?consent=1`,
+        redirectTo: `${window.location.origin}/auth/callback?consent=1&next=${encodeURIComponent(next)}`,
       },
     });
   }
