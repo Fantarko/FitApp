@@ -1,6 +1,9 @@
 import Link from "next/link";
 import GlassButton from "@/components/ui/GlassButton";
 import RepRing from "@/components/ui/RepRing";
+import FadeIn from "@/components/animation/FadeIn";
+import ScaleIn from "@/components/animation/ScaleIn";
+import SlideIn from "@/components/animation/SlideIn";
 import { createClient } from "@/lib/supabase/server";
 
 type LeaderboardRow = {
@@ -50,8 +53,8 @@ export default async function Home() {
               </div>
 
       {/* hero: solo push-up is THE action on this screen — everything else is secondary */}
-      <section className="animate-fade-in flex flex-col items-center gap-8 px-6 pt-12 pb-8 text-center md:pt-20">
-        <div className="animate-slide-up space-y-3">
+      <section className="flex flex-col items-center gap-8 px-6 pt-12 pb-8 text-center md:pt-20">
+        <FadeIn className="space-y-3">
           <p className="inline-block rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
             {todayReps > 0 ? `วันนี้วิดพื้นไปแล้ว ${todayReps} ครั้ง` : "วันนี้ยังไม่ได้วิดพื้นเลย"}
           </p>
@@ -59,19 +62,23 @@ export default async function Home() {
             นับให้แม่น <br className="hidden md:block" />
             <span className="text-primary-deep">วิดพื้นทุกวัน</span>
           </h1>
-        </div>
+        </FadeIn>
 
-        <RepRing value={todayReps} goal={30} label="ครั้งวันนี้" />
+        <ScaleIn delay={0.15}>
+          <RepRing value={todayReps} goal={30} label="ครั้งวันนี้" />
+        </ScaleIn>
 
-        <Link href={user ? "/pushup" : "/login"} className="w-full max-w-xs">
-                <GlassButton
-                variant="primary"
-                className="w-full py-4 text-lg">
-                เริ่มวิดพื้น
-              </GlassButton>
-        </Link>
+        <SlideIn direction="up" delay={0.3} className="w-full max-w-xs">
+          <Link href={user ? "/pushup" : "/login"} className="block w-full">
+            <GlassButton
+              variant="primary"
+              className="w-full py-4 text-lg">
+              เริ่มวิดพื้น
+            </GlassButton>
+          </Link>
+        </SlideIn>
 
-        <div className="flex gap-3 text-sm">
+        <FadeIn delay={0.4} className="flex gap-3 text-sm">
           <Link href={user ? "/vs" : "/login"} className="text-plum-deep underline underline-offset-4">
             แข่งกับเพื่อน
           </Link>
@@ -79,10 +86,10 @@ export default async function Home() {
           <Link href={user ? "/boss" : "/login"} className="text-sun-deep underline underline-offset-4">
             โหมดปราบบอส
           </Link>
-        </div>
+        </FadeIn>
       </section>
 
-      <section className="animate-slide-up grid gap-4 px-6 py-8 md:grid-cols-2 md:px-10">
+      <SlideIn direction="up" delay={0.1} className="grid gap-4 px-6 py-8 md:grid-cols-2 md:px-10">
         <div className="glass rounded-[20px] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <p className="font-display font-semibold text-sun-deep">สตรีค {streak} วัน</p>
           <p className="mt-1 text-sm text-ink/60">ทำติดต่อกันเพื่อรักษาสตรีค</p>
@@ -91,10 +98,10 @@ export default async function Home() {
           <p className="font-display font-semibold text-primary-deep">รวมเดือนนี้ {monthReps} ครั้ง</p>
           <p className="mt-1 text-sm text-ink/60">อัปเดตทุกครั้งที่จบเซสชัน</p>
         </div>
-      </section>
+      </SlideIn>
 
       <section className="px-6 pb-16 md:px-10">
-        <div className="glass mx-auto max-w-xl rounded-[24px] p-5">
+        <FadeIn delay={0.2} className="glass mx-auto max-w-xl rounded-[24px] p-5">
           <h2 className="font-display text-lg font-bold text-primary-deep">
             อันดับเดือนนี้
           </h2>
@@ -103,29 +110,31 @@ export default async function Home() {
           ) : (
             <ol className="mt-3 space-y-2">
               {rows.map((row, i) => (
-                <li
-                    key={row.user_id}
-                    className={`animate-slide-up flex items-center justify-between rounded-xl px-3 py-2 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-tint/50 ${
+                <SlideIn
+                  key={row.user_id}
+                  direction="left"
+                  delay={i * 0.07}
+                >
+                  <li
+                    className={`flex items-center justify-between rounded-xl px-3 py-2 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-tint/50 ${
                       user && row.user_id === user.id ? "bg-primary-tint" : ""
                     }`}
-                    style={{
-                      animationDelay: `${i * 70}ms`,
-                    }}
                   >
-                  <div className="flex items-center gap-3">
-                    <span className="w-6 text-center font-display font-bold text-ink/50">
-                      {medals[i] ?? i + 1}
+                    <div className="flex items-center gap-3">
+                      <span className="w-6 text-center font-display font-bold text-ink/50">
+                        {medals[i] ?? i + 1}
+                      </span>
+                      <span className="font-medium">{row.display_name ?? "ผู้เล่นไม่ระบุชื่อ"}</span>
+                    </div>
+                    <span className="font-display font-bold text-primary-deep">
+                      {row.month_reps} ครั้ง
                     </span>
-                    <span className="font-medium">{row.display_name ?? "ผู้เล่นไม่ระบุชื่อ"}</span>
-                  </div>
-                  <span className="font-display font-bold text-primary-deep">
-                    {row.month_reps} ครั้ง
-                  </span>
-                </li>
+                  </li>
+                </SlideIn>
               ))}
             </ol>
           )}
-        </div>
+        </FadeIn>
       </section>
     </main>
   );

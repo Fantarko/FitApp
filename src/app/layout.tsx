@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Header from "@/components/Header";
+import PageTransition from "@/components/animation/PageTransition";
 
 export const metadata: Metadata = {
   title: "FitGreen — วิดพื้นทุกวัน แข่งกับเพื่อน",
@@ -12,7 +13,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="th" className="h-full antialiased">
       <body className="min-h-full flex flex-col bg-bg text-ink">
         <Header />
-        {children}
+        <PageTransition>{children}</PageTransition>
       </body>
     </html>
   );

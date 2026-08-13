@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import GlassButton from "@/components/ui/GlassButton";
+import ScaleIn from "@/components/animation/ScaleIn";
 
 export default function LoginPage() {
   const [consent, setConsent] = useState(false);
@@ -27,6 +28,7 @@ export default function LoginPage() {
       </div>
 
       <div className="glass w-full max-w-sm rounded-[24px] p-8 text-center">
+        <ScaleIn>
         <h1 className="font-display text-2xl font-bold text-primary-deep">
           เข้าสู่ระบบ
         </h1>
@@ -56,6 +58,7 @@ export default function LoginPage() {
         >
           {loading ? "กำลังเชื่อมต่อ..." : "เข้าสู่ระบบด้วย Google"}
         </GlassButton>
+        </ScaleIn>
       </div>
     </main>
   );

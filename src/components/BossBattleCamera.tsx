@@ -8,6 +8,9 @@ import {
 } from "@mediapipe/tasks-vision";
 import Link from "next/link";
 import GlassButton from "@/components/ui/GlassButton";
+import PopNumber from "@/components/animation/PopNumber";
+import Confetti from "@/components/animation/Confetti";
+import ScaleIn from "@/components/animation/ScaleIn";
 import { PushupCounter, type Landmark } from "@/lib/pose/pushupCounter";
 import {
   TrackingQualityMonitor,
@@ -311,7 +314,12 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
       <canvas ref={sampleCanvasRef} width={32} height={18} className="hidden" />
 
       {/* boss */}
-      <div className="w-full max-w-sm text-center">
+      <div className="relative w-full max-w-sm text-center">
+        {hitFlash && (
+          <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2">
+            <PopNumber value={1} prefix="-" className="text-2xl font-bold text-red-600" />
+          </div>
+        )}
         <div
           className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full text-5xl transition-all duration-150 ${
             hitFlash ? "scale-90 bg-red-500/40" : "bg-black/5"
@@ -327,7 +335,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
           />
         </div>
         <p className="mt-1 text-xs text-ink/50">
-          HP {hp} / {boss.hp}
+          HP <PopNumber value={hp} prefix="" className="inline text-xs font-bold text-ink/70" /> / {boss.hp}
         </p>
       </div>
 
@@ -441,16 +449,21 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
         {status === "victory" ? (
           <div className="flex gap-3">
             <Link href="/boss">
-              <GlassButton variant="sun">กลับไปเลือกด่าน</GlassButton>
+              <GlassButton variant="secondary">กลับไปเลือกด่าน</GlassButton>
             </Link>
           </div>
         ) : null}
       </div>
 
       {status === "victory" && (
-        <p className="rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
-          🎉 ปราบ {boss.name_th} สำเร็จ! ใช้ไป {reps} ครั้ง
-        </p>
+        <>
+          <Confetti trigger={true} />
+          <ScaleIn>
+            <p className="rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
+              🎉 ปราบ {boss.name_th} สำเร็จ! ใช้ไป {reps} ครั้ง
+            </p>
+          </ScaleIn>
+        </>
       )}
       {errorMsg && (
         <p className="rounded-full bg-red-50 px-4 py-1 text-sm font-medium text-red-600">

@@ -8,6 +8,10 @@ import {
 } from "@mediapipe/tasks-vision";
 import GlassButton from "@/components/ui/GlassButton";
 import RepRing from "@/components/ui/RepRing";
+import PopNumber from "@/components/animation/PopNumber";
+import CountUp from "@/components/animation/CountUp";
+import Confetti from "@/components/animation/Confetti";
+import ScaleIn from "@/components/animation/ScaleIn";
 import { PushupCounter, type Landmark } from "@/lib/pose/pushupCounter";
 import {
   TrackingQualityMonitor,
@@ -629,11 +633,11 @@ export default function PushupCamera({
           <div className="mt-4 grid grid-cols-2 gap-3">
             <div className="glass rounded-2xl p-4 text-center">
               <p className="text-sm text-ink/50">คุณ</p>
-              <p className="font-display text-3xl font-bold text-plum-deep">{reps}</p>
+              <CountUp value={reps} className="font-display text-3xl font-bold text-plum-deep" />
             </div>
             <div className="glass rounded-2xl p-4 text-center">
               <p className="text-sm text-ink/50">{opponentName ?? "คู่แข่ง"}</p>
-              <p className="font-display text-3xl font-bold text-plum-deep">{opponentReps}</p>
+              <CountUp value={opponentReps} className="font-display text-3xl font-bold text-plum-deep" />
             </div>
           </div>
 
@@ -691,24 +695,34 @@ export default function PushupCamera({
       </div>
 
       {status === "done" && mode === "vs" && vsResult && (
-        <p
-          className={`rounded-full px-4 py-1 text-sm font-medium ${
-            vsResult === "win"
-              ? "bg-primary-tint text-primary-deep"
-              : vsResult === "lose"
-                ? "bg-red-50 text-red-600"
-                : "bg-sun/20 text-sun-deep"
-          }`}
-        >
-          {vsResult === "win" ? "คุณชนะ!" : vsResult === "lose" ? "คุณแพ้" : "เสมอ"}
-          {" — "}
-          {reps} ต่อ {opponentReps} ครั้ง
-        </p>
+        <>
+          <Confetti trigger={vsResult === "win"} />
+          <ScaleIn>
+            <p
+              className={`rounded-full px-4 py-1 text-sm font-medium ${
+                vsResult === "win"
+                  ? "bg-primary-tint text-primary-deep"
+                  : vsResult === "lose"
+                    ? "bg-red-50 text-red-600"
+                    : "bg-sun/20 text-sun-deep"
+              }`}
+            >
+              {vsResult === "win" ? "คุณชนะ!" : vsResult === "lose" ? "คุณแพ้" : "เสมอ"}
+              {" — "}
+              {reps} ต่อ {opponentReps} ครั้ง
+            </p>
+          </ScaleIn>
+        </>
       )}
       {status === "done" && mode === "solo" && (
-        <p className="rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
-          บันทึกแล้ว — วิดพื้นไป {reps} ครั้ง
-        </p>
+        <>
+          <Confetti trigger={reps > 0} />
+          <ScaleIn className="flex items-center gap-2 rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
+            <span>บันทึกแล้ว — วิดพื้นไป</span>
+            <PopNumber value={reps} prefix="" className="font-display text-base font-bold" />
+            <span>ครั้ง</span>
+          </ScaleIn>
+        </>
       )}
       {errorMsg && (
         <p className="rounded-full bg-red-50 px-4 py-1 text-sm font-medium text-red-600">
