@@ -1,8 +1,95 @@
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=Noto+Sans+Thai:wght@400;500;600;700&display=swap");
+
 @import "tailwindcss";
 
-/* =========================
-   Animations
-========================= */
+/* =========================================================
+   FITGREEN THEME
+   ========================================================= */
+
+@theme {
+  /* ---- Brand: living-room green ---- */
+
+  --color-ink: #14251b;
+  --color-bg: #f7faf4;
+  --color-bg-deep: #eef4e8;
+
+  /* Primary */
+  --color-primary: #1fae5b;
+  --color-primary-deep: #0e6b39;
+  --color-primary-tint: #e4f5ea;
+
+  /* Energy / Streak */
+  --color-sun: #f4a93b;
+  --color-sun-deep: #c97f16;
+
+  /* VS / Competition */
+  --color-plum: #7c6ff0;
+  --color-plum-deep: #564bd1;
+
+  /* Fonts */
+  --font-display: "Space Grotesk", "Noto Sans Thai", sans-serif;
+  --font-body: "Inter", "Noto Sans Thai", sans-serif;
+
+  /* Radius */
+  --radius-glass: 20px;
+}
+
+/* =========================================================
+   BASE
+   ========================================================= */
+
+body {
+  background: var(--color-bg);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* =========================================================
+   GLASSMORPHISM
+   ========================================================= */
+
+.glass {
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+
+  border: 1px solid rgba(255, 255, 255, 0.6);
+
+  box-shadow:
+    0 8px 32px rgba(14, 107, 57, 0.12),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.glass-deep {
+  background: rgba(20, 37, 27, 0.35);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+
+  border: 1px solid rgba(255, 255, 255, 0.18);
+
+  box-shadow:
+    0 8px 32px rgba(14, 107, 57, 0.25);
+}
+
+/* =========================================================
+   ACCESSIBILITY
+   ========================================================= */
+
+:focus-visible {
+  outline: 2px solid var(--color-primary-deep);
+  outline-offset: 2px;
+}
+
+/* =========================================================
+   ANIMATIONS
+   ========================================================= */
 
 @keyframes fade-in {
   from {
@@ -66,9 +153,9 @@
   }
 }
 
-/* =========================
-   Animation Classes
-========================= */
+/* =========================================================
+   ANIMATION CLASSES
+   ========================================================= */
 
 .animate-fade-in {
   animation: fade-in 0.7s ease-out both;
@@ -90,9 +177,9 @@
   animation: medal-pop 0.5s ease-out both;
 }
 
-/* =========================
-   Hover
-========================= */
+/* =========================================================
+   HOVER
+   ========================================================= */
 
 .hover-float {
   transition:
@@ -104,9 +191,9 @@
   transform: translateY(-4px);
 }
 
-/* =========================
-   Reduced Motion
-========================= */
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
 
 @media (prefers-reduced-motion: reduce) {
   *,
