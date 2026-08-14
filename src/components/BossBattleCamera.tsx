@@ -241,6 +241,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
         logRef.current = [];
         frameIndexRef.current = 0;
         startTimeRef.current = performance.now();
+        qualityRef.current.startDepthTracking();
         setReps(0);
         setStatus("fighting");
       } else {

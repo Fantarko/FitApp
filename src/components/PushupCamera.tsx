@@ -297,6 +297,7 @@ export default function PushupCamera({
         logRef.current = [];
         frameIndexRef.current = 0;
         startTimeRef.current = performance.now();
+        qualityRef.current.startDepthTracking();
         setReps(0);
         setStatus("running");
 

@@ -54,11 +54,32 @@ export default async function Home() {
 
   return (
     <main className="flex-1 flex flex-col">
-            <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-                    <div className="animate-float absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-                    <div className="animate-float-slow absolute top-1/3 -right-24 h-80 w-80 rounded-full bg-sun/20 blur-3xl" />
-                    <div className="animate-float absolute bottom-0 left-1/4 h-72 w-72 rounded-full bg-plum/15 blur-3xl" />
-              </div>
+      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+        {/* one asymmetric brush shape instead of three uniform blurred circles —
+            the "three matching glow orbs" look is the fastest AI-generated tell */}
+        <svg
+          className="animate-float-slow absolute -top-16 -right-32 h-[560px] w-[560px] opacity-[0.14] md:-right-10"
+          viewBox="0 0 200 200"
+          fill="none"
+        >
+          <path
+            d="M45,-58.5C58.4,-49.6,68.8,-35.1,72.6,-18.9C76.4,-2.7,73.6,15.2,65.1,29.6C56.6,44,42.5,54.9,26.7,61.8C10.9,68.6,-6.6,71.5,-22.4,67.2C-38.2,62.9,-52.3,51.4,-61.2,36.6C-70.1,21.8,-73.8,3.7,-70.4,-12.6C-67,-28.9,-56.5,-43.4,-42.9,-52.6C-29.3,-61.8,-14.6,-65.7,1.6,-67.7C17.9,-69.7,35.7,-67.4,45,-58.5Z"
+            transform="translate(100 100)"
+            fill="var(--color-primary)"
+          />
+        </svg>
+        <svg
+          className="animate-float absolute bottom-[-120px] left-[-120px] h-[420px] w-[420px] opacity-[0.12]"
+          viewBox="0 0 200 200"
+          fill="none"
+        >
+          <path
+            d="M39.5,-51.6C50.7,-42.6,58.7,-29.6,61.6,-15.3C64.5,-1,63.3,14.6,56.4,27.4C49.5,40.2,36.9,50.2,22.5,56.4C8.1,62.6,-8.1,65,-23.3,60.7C-38.5,56.4,-52.7,45.4,-60.5,31C-68.3,16.6,-69.7,-1.2,-64.6,-16.6C-59.5,-32,-47.9,-45,-34.3,-53.6C-20.7,-62.2,-5.1,-66.4,8.9,-64.4C22.9,-62.4,26.3,-60.6,39.5,-51.6Z"
+            transform="translate(100 100)"
+            fill="var(--color-sun)"
+          />
+        </svg>
+      </div>
 
       {/* hero: solo push-up is THE action on this screen — everything else is secondary */}
       <section className="flex flex-col items-center gap-8 px-6 pt-12 pb-8 text-center md:pt-20">
