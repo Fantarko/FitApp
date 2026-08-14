@@ -12,6 +12,9 @@ import PopNumber from "@/components/animation/PopNumber";
 import CountUp from "@/components/animation/CountUp";
 import Confetti from "@/components/animation/Confetti";
 import ScaleIn from "@/components/animation/ScaleIn";
+import MotivationToast from "@/components/animation/MotivationToast";
+import { playRepSound, playMilestoneSound } from "@/lib/sound";
+import { MOTIVATION_MESSAGES_TH } from "@/lib/motivation";
 import { PushupCounter, type Landmark } from "@/lib/pose/pushupCounter";
 import {
   TrackingQualityMonitor,
@@ -26,6 +29,7 @@ type Status =
   | "idle"
   | "loading"
   | "calibrating"
+  | "waiting_opponent"
   | "countdown"
   | "running"
   | "saving"
@@ -46,9 +50,16 @@ type VsMatch = {
   status: "pending" | "active" | "completed" | "cancelled" | "disputed";
   duration_seconds: number;
   winner_id: string | null;
+  started_at: string | null;
 };
 
 const GOAL = 30;
+
+function formatDuration(totalSeconds: number): string {
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${s.toString().padStart(2, "0")}`;
+}
 // keep the server-side log light: one sample every N processed frames
 const LOG_SAMPLE_INTERVAL = 15;
 const BRIGHTNESS_SAMPLE_INTERVAL = 5;
@@ -81,6 +92,9 @@ export default function PushupCamera({
   const [qualityIssues, setQualityIssues] = useState<QualityIssue[]>([]);
   const [calibrationProgress, setCalibrationProgress] = useState(0);
   const [countdownNumber, setCountdownNumber] = useState<number | null>(null);
+  const [motivationMessage, setMotivationMessage] = useState<string | null>(null);
+  const [lastDurationSeconds, setLastDurationSeconds] = useState(0);
+  const motivationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [vsRole, setVsRole] = useState<"challenger" | "opponent" | null>(null);
   const [vsReady, setVsReady] = useState(false);
@@ -113,6 +127,10 @@ export default function PushupCamera({
     if (vsTimerRef.current) {
       clearInterval(vsTimerRef.current);
       vsTimerRef.current = null;
+    }
+    if (motivationTimerRef.current) {
+      clearTimeout(motivationTimerRef.current);
+      motivationTimerRef.current = null;
     }
     streamRef.current?.getTracks().forEach((t) => t.stop());
     streamRef.current = null;
@@ -205,7 +223,11 @@ export default function PushupCamera({
         const passed = calibrationRef.current.update(qualityOk);
         setCalibrationProgress(calibrationRef.current.progress());
         if (passed) {
-          startCountdown();
+          if (mode === "vs") {
+            markReadyForVs();
+          } else {
+            startCountdown();
+          }
         }
       } else if (statusRef.current === "running") {
         if (frameIndexRef.current % LOG_SAMPLE_INTERVAL === 0) {
@@ -222,6 +244,17 @@ export default function PushupCamera({
 
           if (event) {
             setReps(event.count);
+
+            if (event.count % 10 === 0) {
+              playMilestoneSound();
+              const msg =
+                MOTIVATION_MESSAGES_TH[(event.count / 10 - 1) % MOTIVATION_MESSAGES_TH.length];
+              setMotivationMessage(msg);
+              if (motivationTimerRef.current) clearTimeout(motivationTimerRef.current);
+              motivationTimerRef.current = setTimeout(() => setMotivationMessage(null), 2200);
+            } else {
+              playRepSound();
+            }
 
             // VS mode → ส่งคะแนนเข้า match
             if (mode === "vs" && vsReadyRef.current) {
@@ -279,6 +312,24 @@ export default function PushupCamera({
       setStatus("error");
       setErrorMsg("เปิดกล้องไม่ได้ — ตรวจสอบว่าอนุญาตสิทธิ์กล้องให้เว็บนี้แล้ว");
       stopStream();
+    }
+  }
+
+  /** VS mode: signal this player's camera is calibrated and ready — the shared
+   *  countdown only starts once BOTH players have called this (see mark_player_ready). */
+  async function markReadyForVs() {
+    if (!matchId) return;
+    setStatus("waiting_opponent");
+
+    const { data, error } = await supabase.rpc("mark_player_ready", { p_match_id: matchId });
+    if (error || !data) return;
+
+    const result = data as VsMatch;
+    if (result.started_at) {
+      // the other player was already waiting — this call was the one that
+      // completed the pair, so start immediately instead of waiting on realtime
+      matchStartedAtRef.current = new Date(result.started_at).getTime();
+      if (statusRef.current === "waiting_opponent") startCountdown();
     }
   }
 
@@ -359,6 +410,7 @@ export default function PushupCamera({
     setStatus("saving");
 
     const durationSeconds = Math.round((performance.now() - startTimeRef.current) / 1000);
+    setLastDurationSeconds(durationSeconds);
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -440,9 +492,9 @@ export default function PushupCamera({
 
       if (!cancelled) {
         setMatchDuration(match.duration_seconds ?? 60);
-        matchStartedAtRef.current = match.started_at
-          ? new Date(match.started_at).getTime()
-          : Date.now();
+        // null until both players are ready (see mark_player_ready) — do NOT
+        // default to Date.now() here, that would fake an already-started match
+        matchStartedAtRef.current = match.started_at ? new Date(match.started_at).getTime() : null;
         setOpponentReps(
           vsRoleRef.current === "challenger" ? match.opponent_reps ?? 0 : match.challenger_reps ?? 0
         );
@@ -481,6 +533,17 @@ export default function PushupCamera({
             setOpponentReps(updated.challenger_reps ?? 0);
           }
 
+          // the other player just became ready too — this is the synchronized
+          // "go" signal for whichever side is still sitting in waiting_opponent
+          if (
+            updated.started_at &&
+            !matchStartedAtRef.current &&
+            statusRef.current === "waiting_opponent"
+          ) {
+            matchStartedAtRef.current = new Date(updated.started_at).getTime();
+            startCountdown();
+          }
+
           if (updated.status === "completed" && !vsFinishedRef.current) {
             vsFinishedRef.current = true;
             if (vsTimerRef.current) {
@@ -512,6 +575,7 @@ export default function PushupCamera({
     }
 
     const durationSeconds = Math.round((performance.now() - startTimeRef.current) / 1000);
+    setLastDurationSeconds(durationSeconds);
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -567,6 +631,7 @@ export default function PushupCamera({
       <canvas ref={sampleCanvasRef} width={32} height={18} className="hidden" />
 
       <div className="glass relative aspect-video w-full overflow-hidden rounded-[24px]">
+        <MotivationToast message={motivationMessage} />
         <video
           ref={videoRef}
           className="absolute inset-0 h-full w-full -scale-x-100 object-cover"
@@ -618,6 +683,18 @@ export default function PushupCamera({
           </div>
         )}
 
+        {status === "waiting_opponent" && (
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-white/20 border-t-plum" />
+            <p className="font-display text-lg font-semibold text-white">
+              พร้อมแล้ว! รอ {opponentName ?? "คู่แข่ง"}...
+            </p>
+            <p className="max-w-xs text-sm text-white/80">
+              เริ่มนับพร้อมกันทันทีที่อีกฝั่งตั้งกล้องเสร็จ
+            </p>
+          </div>
+        )}
+
         {status === "countdown" && countdownNumber !== null && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">
             <div className="text-6xl">✋</div>
@@ -641,7 +718,10 @@ export default function PushupCamera({
           </div>
         )}
 
-        {(status === "calibrating" || status === "countdown" || status === "running") && (
+        {(status === "calibrating" ||
+          status === "waiting_opponent" ||
+          status === "countdown" ||
+          status === "running") && (
           <button
             type="button"
             onClick={handleResetCalibration}
@@ -699,13 +779,18 @@ export default function PushupCamera({
             variant="primary"
             onClick={handleStart}
             disabled={mode === "vs" && !vsReady}
+            className="px-8 py-4 text-lg"
           >
             {mode === "vs" && !vsReady ? "กำลังเตรียมการแข่งขัน..." : "เริ่มนับ"}
           </GlassButton>
         ) : null}
-        {status === "calibrating" || status === "countdown" ? (
+        {status === "calibrating" || status === "waiting_opponent" || status === "countdown" ? (
           <GlassButton variant="ghost" disabled>
-            {status === "calibrating" ? "กำลังตั้งกล้อง..." : "เตรียมตัว..."}
+            {status === "calibrating"
+              ? "กำลังตั้งกล้อง..."
+              : status === "waiting_opponent"
+                ? "รอคู่แข่ง..."
+                : "เตรียมตัว..."}
           </GlassButton>
         ) : null}
         {status === "running" && mode === "solo" ? (
@@ -724,7 +809,7 @@ export default function PushupCamera({
           </GlassButton>
         ) : null}
         {status === "done" ? (
-          <GlassButton variant="primary" onClick={handleStart}>
+          <GlassButton variant="primary" onClick={handleStart} className="px-8 py-4 text-lg">
             เริ่มเซสชันใหม่
           </GlassButton>
         ) : null}
@@ -733,9 +818,9 @@ export default function PushupCamera({
       {status === "done" && mode === "vs" && vsResult && (
         <>
           <Confetti trigger={vsResult === "win"} />
-          <ScaleIn>
+          <ScaleIn className="glass w-full max-w-sm rounded-[24px] p-6 text-center">
             <p
-              className={`rounded-full px-4 py-1 text-sm font-medium ${
+              className={`inline-block rounded-full px-4 py-1 text-sm font-medium ${
                 vsResult === "win"
                   ? "bg-primary-tint text-primary-deep"
                   : vsResult === "lose"
@@ -743,9 +828,22 @@ export default function PushupCamera({
                     : "bg-sun/20 text-sun-deep"
               }`}
             >
-              {vsResult === "win" ? "คุณชนะ!" : vsResult === "lose" ? "คุณแพ้" : "เสมอ"}
-              {" — "}
-              {reps} ต่อ {opponentReps} ครั้ง
+              {vsResult === "win" ? "🏆 คุณชนะ!" : vsResult === "lose" ? "คุณแพ้" : "🤝 เสมอ"}
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-ink/40">คุณ</p>
+                <p className="font-display text-3xl font-bold text-plum-deep">{reps}</p>
+              </div>
+              <div>
+                <p className="text-xs text-ink/40">{opponentName ?? "คู่แข่ง"}</p>
+                <p className="font-display text-3xl font-bold text-ink/60">{opponentReps}</p>
+              </div>
+            </div>
+
+            <p className="mt-4 text-sm text-ink/50">
+              ใช้เวลาทั้งหมด {formatDuration(lastDurationSeconds)}
             </p>
           </ScaleIn>
 
@@ -792,10 +890,27 @@ export default function PushupCamera({
       {status === "done" && mode === "solo" && (
         <>
           <Confetti trigger={reps > 0} />
-          <ScaleIn className="flex items-center gap-2 rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
-            <span>บันทึกแล้ว — วิดพื้นไป</span>
-            <PopNumber value={reps} prefix="" className="font-display text-base font-bold" />
-            <span>ครั้ง</span>
+          <ScaleIn className="glass w-full max-w-sm rounded-[24px] p-6 text-center">
+            <p className="inline-block rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
+              บันทึกเซสชันแล้ว
+            </p>
+
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-ink/40">จำนวนครั้ง</p>
+                <PopNumber
+                  value={reps}
+                  prefix=""
+                  className="font-display text-4xl font-bold text-primary-deep"
+                />
+              </div>
+              <div>
+                <p className="text-xs text-ink/40">เวลาที่ใช้</p>
+                <p className="font-display text-4xl font-bold text-ink/70">
+                  {formatDuration(lastDurationSeconds)}
+                </p>
+              </div>
+            </div>
           </ScaleIn>
         </>
       )}

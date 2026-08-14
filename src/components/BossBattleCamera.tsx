@@ -11,6 +11,7 @@ import GlassButton from "@/components/ui/GlassButton";
 import PopNumber from "@/components/animation/PopNumber";
 import Confetti from "@/components/animation/Confetti";
 import ScaleIn from "@/components/animation/ScaleIn";
+import { playRepSound } from "@/lib/sound";
 import { PushupCounter, type Landmark } from "@/lib/pose/pushupCounter";
 import {
   TrackingQualityMonitor,
@@ -64,6 +65,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
 
   const [status, setStatus] = useState<Status>("idle");
   const [reps, setReps] = useState(0);
+  const [defeatDurationSeconds, setDefeatDurationSeconds] = useState(0);
   const [errorMsg, setErrorMsg] = useState("");
   const [qualityIssues, setQualityIssues] = useState<QualityIssue[]>([]);
   const [calibrationProgress, setCalibrationProgress] = useState(0);
@@ -182,6 +184,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
           if (event) {
             setReps(event.count);
             triggerHit();
+            playRepSound();
           }
         }
       }
@@ -272,6 +275,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
       setStatus("saving");
 
       const durationSeconds = Math.round((performance.now() - startTimeRef.current) / 1000);
+      setDefeatDurationSeconds(durationSeconds);
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -428,7 +432,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
 
       <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
         {status === "idle" || status === "error" ? (
-          <GlassButton variant="primary" onClick={handleStart}>
+          <GlassButton variant="primary" onClick={handleStart} className="px-8 py-4 text-lg">
             เริ่มสู้
           </GlassButton>
         ) : null}
@@ -459,10 +463,23 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
       {status === "victory" && (
         <>
           <Confetti trigger={true} />
-          <ScaleIn>
-            <p className="rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
-              🎉 ปราบ {boss.name_th} สำเร็จ! ใช้ไป {reps} ครั้ง
+          <ScaleIn className="glass w-full max-w-sm rounded-[24px] p-6 text-center">
+            <p className="inline-block rounded-full bg-primary-tint px-4 py-1 text-sm font-medium text-primary-deep">
+              🎉 ปราบ {boss.name_th} สำเร็จ!
             </p>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-xs text-ink/40">ใช้ไป</p>
+                <p className="font-display text-3xl font-bold text-primary-deep">{reps} ครั้ง</p>
+              </div>
+              <div>
+                <p className="text-xs text-ink/40">เวลาที่ใช้</p>
+                <p className="font-display text-3xl font-bold text-ink/70">
+                  {Math.floor(defeatDurationSeconds / 60)}:
+                  {(defeatDurationSeconds % 60).toString().padStart(2, "0")}
+                </p>
+              </div>
+            </div>
           </ScaleIn>
         </>
       )}

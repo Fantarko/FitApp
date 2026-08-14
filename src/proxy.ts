@@ -34,6 +34,7 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/pushup") ||
     request.nextUrl.pathname.startsWith("/vs") ||
     request.nextUrl.pathname.startsWith("/boss") ||
+    request.nextUrl.pathname.startsWith("/stats") ||
     isAdminRoute;
 
   if (!user && isProtectedRoute) {

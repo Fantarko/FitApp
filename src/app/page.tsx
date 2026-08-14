@@ -115,6 +115,10 @@ export default async function Home() {
           <Link href={user ? "/boss" : "/login"} className="text-sun-deep underline underline-offset-4">
             โหมดปราบบอส
           </Link>
+          <span className="text-ink/30">·</span>
+          <Link href={user ? "/stats" : "/login"} className="text-ink/60 underline underline-offset-4">
+            รายงาน
+          </Link>
         </FadeIn>
       </section>
 
