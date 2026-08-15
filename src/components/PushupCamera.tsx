@@ -657,7 +657,6 @@ export default function PushupCamera({
 
         {status === "calibrating" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center">
-            <div className="text-4xl">📐</div>
             <p className="font-display text-lg font-semibold text-white">
               กำลังตั้งกล้อง
             </p>
@@ -697,7 +696,6 @@ export default function PushupCamera({
 
         {status === "countdown" && countdownNumber !== null && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">
-            <div className="text-6xl">✋</div>
             <p className="font-display text-6xl font-bold text-white">
               {countdownNumber}
             </p>
@@ -779,7 +777,7 @@ export default function PushupCamera({
             variant="primary"
             onClick={handleStart}
             disabled={mode === "vs" && !vsReady}
-            className="px-8 py-4 text-lg"
+            className="text-lg"
           >
             {mode === "vs" && !vsReady ? "กำลังเตรียมการแข่งขัน..." : "เริ่มนับ"}
           </GlassButton>
