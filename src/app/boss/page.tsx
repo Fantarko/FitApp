@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import BlobBackground from "@/components/BlobBackground";
 
 type Boss = {
   id: string;
@@ -40,13 +41,7 @@ export default async function BossListPage() {
   return (
     <main className="relative flex min-h-screen flex-1 flex-col items-center overflow-hidden px-6 py-10">
       {/* Animated background */}
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="animate-float absolute -right-32 -top-24 h-96 w-96 rounded-full bg-sun/15 blur-3xl" />
-
-        <div className="animate-float-slow absolute -left-32 top-1/3 h-80 w-80 rounded-full bg-primary/10 blur-3xl" />
-
-        <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-plum/10 blur-3xl" />
-      </div>
+      <BlobBackground colors={["var(--color-sun)", "var(--color-plum)"]} />
 
       {/* Header */}
       <div className="animate-fade-in mb-8 text-center">

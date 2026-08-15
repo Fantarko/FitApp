@@ -1,6 +1,8 @@
 import FadeIn from "@/components/animation/FadeIn";
 import CountUp from "@/components/animation/CountUp";
 import { createClient } from "@/lib/supabase/server";
+import PlayerManager from "@/components/admin/PlayerManager";
+import ReportActions from "@/components/admin/ReportActions";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -69,21 +71,15 @@ export default async function AdminPage() {
             {reports.map((r) => (
               <li key={r.id} className="flex items-center justify-between py-2 text-sm">
                 <span className="text-ink/80">{r.reason}</span>
-                <span
-                  className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    r.status === "open"
-                      ? "bg-sun/20 text-sun-deep"
-                      : r.status === "upheld"
-                        ? "bg-red-50 text-red-600"
-                        : "bg-primary-tint text-primary-deep"
-                  }`}
-                >
-                  {r.status}
-                </span>
+                <ReportActions reportId={r.id} status={r.status} />
               </li>
             ))}
           </ul>
         )}
+      </FadeIn>
+
+      <FadeIn delay={0.25} className="mt-8">
+        <PlayerManager />
       </FadeIn>
 
       <p className="mt-8 text-sm text-ink/50">

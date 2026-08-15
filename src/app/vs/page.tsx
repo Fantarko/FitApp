@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import GlassButton from "@/components/ui/GlassButton";
+import BlobBackground from "@/components/BlobBackground";
 import { createClient } from "@/lib/supabase/client";
 
 type Match = {
@@ -320,13 +321,7 @@ export default function VsPage() {
     {/* =========================
         Animated Background
     ========================= */}
-    <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-      <div className="animate-float absolute -left-32 -top-20 h-80 w-80 rounded-full bg-plum/15 blur-3xl" />
-
-      <div className="animate-float-slow absolute -right-32 top-1/3 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
-
-      <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sun/10 blur-3xl" />
-    </div>
+    <BlobBackground colors={["var(--color-plum)", "var(--color-sun)"]} />
 
     {/* =========================
         Header

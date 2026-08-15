@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import PushupCamera from "@/components/PushupCamera";
+import BlobBackground from "@/components/BlobBackground";
 
 export default function VsMatchPage() {
   const params = useParams();
@@ -32,11 +33,7 @@ export default function VsMatchPage() {
     return (
       <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
         {/* Animated background */}
-        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-          <div className="animate-float absolute -left-32 -top-20 h-80 w-80 rounded-full bg-plum/15 blur-3xl" />
-          <div className="animate-float-slow absolute -right-32 top-1/3 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
-          <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sun/10 blur-3xl" />
-        </div>
+        <BlobBackground colors={["var(--color-plum)", "var(--color-sun)"]} />
 
         <div className="glass animate-fade-in w-full max-w-md rounded-[28px] p-8 text-center">
           <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-plum/10">
@@ -62,13 +59,7 @@ export default function VsMatchPage() {
   return (
     <main className="relative flex min-h-screen flex-col items-center overflow-hidden px-4 py-8">
       {/* Animated background */}
-      <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
-        <div className="animate-float absolute -left-32 -top-20 h-80 w-80 rounded-full bg-plum/15 blur-3xl" />
-
-        <div className="animate-float-slow absolute -right-32 top-1/3 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
-
-        <div className="animate-float absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-sun/10 blur-3xl" />
-      </div>
+      <BlobBackground colors={["var(--color-plum)", "var(--color-sun)"]} />
 
       {/* Header */}
       <div className="animate-fade-in mb-6 w-full max-w-2xl">

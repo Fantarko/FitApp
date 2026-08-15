@@ -9,12 +9,12 @@ import {
 import GlassButton from "@/components/ui/GlassButton";
 import RepRing from "@/components/ui/RepRing";
 import PopNumber from "@/components/animation/PopNumber";
-import CountUp from "@/components/animation/CountUp";
 import Confetti from "@/components/animation/Confetti";
 import ScaleIn from "@/components/animation/ScaleIn";
 import MotivationToast from "@/components/animation/MotivationToast";
 import { playRepSound, playMilestoneSound } from "@/lib/sound";
 import { MOTIVATION_MESSAGES_TH } from "@/lib/motivation";
+import { getTodayChallenge } from "@/lib/dailyChallenge";
 import { PushupCounter, type Landmark } from "@/lib/pose/pushupCounter";
 import {
   TrackingQualityMonitor,
@@ -94,6 +94,7 @@ export default function PushupCamera({
   const [countdownNumber, setCountdownNumber] = useState<number | null>(null);
   const [motivationMessage, setMotivationMessage] = useState<string | null>(null);
   const [lastDurationSeconds, setLastDurationSeconds] = useState(0);
+  const [challengeCleared, setChallengeCleared] = useState(false);
   const motivationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [vsRole, setVsRole] = useState<"challenger" | "opponent" | null>(null);
@@ -306,6 +307,7 @@ export default function PushupCamera({
       setReportOpen(false);
       setReportReason("");
       setReportStatus("idle");
+      setChallengeCleared(false);
       setStatus("calibrating");
       rafRef.current = requestAnimationFrame(loop);
     } catch {
@@ -416,16 +418,38 @@ export default function PushupCamera({
     } = await supabase.auth.getUser();
 
     if (user) {
-      await supabase.from("pushup_sessions").insert({
-        user_id: user.id,
-        rep_count: counterRef.current.getCount(),
-        duration_seconds: durationSeconds,
-        landmark_log: logRef.current,
-        low_quality_ratio: qualityRef.current.getLowQualityRatio(),
-        match_id: mode === "vs" ? matchId ?? null : null,
-      });
+      const { data: session } = await supabase
+        .from("pushup_sessions")
+        .insert({
+          user_id: user.id,
+          rep_count: counterRef.current.getCount(),
+          duration_seconds: durationSeconds,
+          landmark_log: logRef.current,
+          low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+          match_id: mode === "vs" ? matchId ?? null : null,
+        })
+        .select("id")
+        .single();
+
       // fire-and-forget: awards a streak badge if this session pushed the streak over a milestone
       supabase.rpc("check_and_award_badges", { p_user_id: user.id });
+
+      // daily challenge: same rule for everyone today (see lib/dailyChallenge.ts) —
+      // if this session cleared it, record completion (upsert is safe against double-finish clicks)
+      if (mode === "solo") {
+        const challenge = getTodayChallenge();
+        const cleared =
+          counterRef.current.getCount() >= challenge.targetReps &&
+          (challenge.targetSeconds === null || durationSeconds <= challenge.targetSeconds);
+        if (cleared) {
+          setChallengeCleared(true);
+          await supabase.from("daily_challenge_progress").upsert({
+            user_id: user.id,
+            challenge_date: challenge.id,
+            session_id: session?.id ?? null,
+          });
+        }
+      }
     }
 
     setStatus("done");
@@ -632,6 +656,43 @@ export default function PushupCamera({
 
       <div className="glass relative aspect-video w-full overflow-hidden rounded-[24px]">
         <MotivationToast message={motivationMessage} />
+
+        {/* VS: tug-of-war bar + timer, overlaid directly on the camera so it's
+            visible while looking at yourself — no more glancing away */}
+        {mode === "vs" && (status === "running" || status === "countdown" || status === "calibrating") && (
+          <div className="absolute inset-x-0 top-0 z-10 px-3 pt-3">
+            {timeLeft !== null && (
+              <p className="text-center font-display text-2xl font-bold text-white drop-shadow">
+                ⏱️ {timeLeft} วิ
+              </p>
+            )}
+            <div className="mt-2 flex items-center gap-2">
+              <span className="w-8 shrink-0 text-right font-display text-sm font-bold text-white drop-shadow">
+                {reps}
+              </span>
+              <div className="relative h-3 flex-1 overflow-hidden rounded-full bg-black/40">
+                <div
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-plum to-plum-deep transition-all duration-300"
+                  style={{
+                    width: `${
+                      reps + opponentReps === 0
+                        ? 50
+                        : Math.round((reps / (reps + opponentReps)) * 100)
+                    }%`,
+                  }}
+                />
+                {/* center marker — the tug-of-war "rope midpoint" */}
+                <div className="absolute inset-y-0 left-1/2 w-0.5 -translate-x-1/2 bg-white/60" />
+              </div>
+              <span className="w-8 shrink-0 font-display text-sm font-bold text-white drop-shadow">
+                {opponentReps}
+              </span>
+            </div>
+            <p className="mt-1 text-center text-xs text-white/80 drop-shadow">
+              VS {opponentName ?? "คู่แข่ง"}
+            </p>
+          </div>
+        )}
         <video
           ref={videoRef}
           className="absolute inset-0 h-full w-full -scale-x-100 object-cover"
@@ -657,6 +718,7 @@ export default function PushupCamera({
 
         {status === "calibrating" && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center">
+            <div className="text-4xl">📐</div>
             <p className="font-display text-lg font-semibold text-white">
               กำลังตั้งกล้อง
             </p>
@@ -696,6 +758,7 @@ export default function PushupCamera({
 
         {status === "countdown" && countdownNumber !== null && (
           <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">
+            <div className="text-6xl">✋</div>
             <p className="font-display text-6xl font-bold text-white">
               {countdownNumber}
             </p>
@@ -732,52 +795,13 @@ export default function PushupCamera({
 
       <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} />
 
-      {/* VS: timer, opponent identity, tug-of-war pressure bar */}
-      {mode === "vs" && (status === "running" || status === "countdown" || status === "calibrating") && (
-        <div className="w-full max-w-md text-center">
-          {timeLeft !== null && (
-            <p className="font-display text-3xl font-bold text-plum-deep">
-              ⏱️ {timeLeft} วิ
-            </p>
-          )}
-          <p className="mt-1 text-sm text-ink/60">
-            VS {opponentName ?? "คู่แข่ง"}
-          </p>
-
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div className="glass rounded-2xl p-4 text-center">
-              <p className="text-sm text-ink/50">คุณ</p>
-              <CountUp value={reps} className="font-display text-3xl font-bold text-plum-deep" />
-            </div>
-            <div className="glass rounded-2xl p-4 text-center">
-              <p className="text-sm text-ink/50">{opponentName ?? "คู่แข่ง"}</p>
-              <CountUp value={opponentReps} className="font-display text-3xl font-bold text-plum-deep" />
-            </div>
-          </div>
-
-          {/* tug-of-war: fill pushes toward whoever's behind, applying visual pressure */}
-          <div className="mt-3 h-4 w-full overflow-hidden rounded-full bg-black/10">
-            <div
-              className="h-full bg-gradient-to-r from-plum to-plum-deep transition-all duration-300"
-              style={{
-                width: `${
-                  reps + opponentReps === 0
-                    ? 50
-                    : Math.round((reps / (reps + opponentReps)) * 100)
-                }%`,
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
         {status === "idle" || status === "error" ? (
           <GlassButton
             variant="primary"
             onClick={handleStart}
             disabled={mode === "vs" && !vsReady}
-            className="text-lg"
+            className="px-8 py-4 text-lg"
           >
             {mode === "vs" && !vsReady ? "กำลังเตรียมการแข่งขัน..." : "เริ่มนับ"}
           </GlassButton>
@@ -909,6 +933,12 @@ export default function PushupCamera({
                 </p>
               </div>
             </div>
+
+            {challengeCleared && (
+              <p className="mt-4 inline-block rounded-full bg-sun/20 px-3 py-1 text-xs font-semibold text-sun-deep">
+                🎯 ผ่านท้าประจำวันแล้ว!
+              </p>
+            )}
           </ScaleIn>
         </>
       )}

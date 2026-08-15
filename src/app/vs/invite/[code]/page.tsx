@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import FadeIn from "@/components/animation/FadeIn";
+import BlobBackground from "@/components/BlobBackground";
 
 type JoinResult = {
   id: string;
@@ -104,9 +105,7 @@ export default function InviteJoinPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-6">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-plum/20 blur-3xl" />
-      </div>
+      <BlobBackground colors={["var(--color-plum)", "var(--color-primary)"]} />
 
       <FadeIn className="glass w-full max-w-sm rounded-[24px] p-8 text-center">
         {state === "joining" && (

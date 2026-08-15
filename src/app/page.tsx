@@ -5,6 +5,7 @@ import FadeIn from "@/components/animation/FadeIn";
 import ScaleIn from "@/components/animation/ScaleIn";
 import SlideIn from "@/components/animation/SlideIn";
 import { createClient } from "@/lib/supabase/server";
+import { getTodayChallenge } from "@/lib/dailyChallenge";
 
 type LeaderboardRow = {
   user_id: string;
@@ -23,9 +24,14 @@ export default async function Home() {
   let monthReps = 0;
   let streak = 0;
   let myBadges: { code: string; icon: string; name_th: string }[] = [];
+  let challengeCleared = false;
+  let weekThis = 0;
+  let weekLast = 0;
+
+  const challenge = getTodayChallenge();
 
   if (user) {
-    const [today, month, streakRes, badgeRes] = await Promise.all([
+    const [today, month, streakRes, badgeRes, challengeRes, weekRes] = await Promise.all([
       supabase.rpc("get_today_reps", { p_user_id: user.id }),
       supabase.rpc("get_month_reps", { p_user_id: user.id }),
       supabase.rpc("get_current_streak", { p_user_id: user.id }),
@@ -33,6 +39,13 @@ export default async function Home() {
         .from("user_badges")
         .select("badges(code, icon, name_th)")
         .eq("user_id", user.id),
+      supabase
+        .from("daily_challenge_progress")
+        .select("challenge_date")
+        .eq("user_id", user.id)
+        .eq("challenge_date", challenge.id)
+        .maybeSingle(),
+      supabase.rpc("get_week_reps", { p_user_id: user.id }),
     ]);
     todayReps = today.data ?? 0;
     monthReps = month.data ?? 0;
@@ -40,17 +53,23 @@ export default async function Home() {
     myBadges = (badgeRes.data ?? [])
       .map((row) => row.badges)
       .filter(Boolean) as unknown as { code: string; icon: string; name_th: string }[];
+    challengeCleared = !!challengeRes.data;
+    const week = weekRes.data?.[0];
+    weekThis = week?.this_week ?? 0;
+    weekLast = week?.last_week ?? 0;
   }
 
-    const {data: leaderboard,error: leaderboardError,
-    } = await supabase.rpc("get_monthly_leaderboard");
-        
-    if (leaderboardError) {
-          console.error("Leaderboard error:", leaderboardError);
-    }
+  const { data: leaderboard, error: leaderboardError } = await supabase.rpc(
+    "get_monthly_leaderboard"
+  );
 
-    const rows = (leaderboard ?? []) as LeaderboardRow[];
-    const medals = ["🥇", "🥈", "🥉"];
+  if (leaderboardError) {
+    console.error("Leaderboard error:", leaderboardError);
+  }
+
+  const rows = (leaderboard ?? []) as LeaderboardRow[];
+  const medals = ["🥇", "🥈", "🥉"];
+  const weekDelta = weekThis - weekLast;
 
   return (
     <main className="flex-1 flex flex-col">
@@ -99,15 +118,13 @@ export default async function Home() {
 
         <SlideIn direction="up" delay={0.3} className="w-full max-w-xs">
           <Link href={user ? "/pushup" : "/login"} className="block w-full">
-            <GlassButton
-              variant="primary"
-              className="w-full py-4 text-lg">
+            <GlassButton variant="primary" size="lg" className="w-full">
               เริ่มวิดพื้น
             </GlassButton>
           </Link>
         </SlideIn>
 
-        <FadeIn delay={0.4} className="flex gap-3 text-sm">
+        <FadeIn delay={0.4} className="flex flex-wrap justify-center gap-3 text-sm">
           <Link href={user ? "/vs" : "/login"} className="text-plum-deep underline underline-offset-4">
             แข่งกับเพื่อน
           </Link>
@@ -119,10 +136,35 @@ export default async function Home() {
           <Link href={user ? "/stats" : "/login"} className="text-ink/60 underline underline-offset-4">
             รายงาน
           </Link>
+          <span className="text-ink/30">·</span>
+          <Link href={user ? "/friends" : "/login"} className="text-ink/60 underline underline-offset-4">
+            เพื่อน
+          </Link>
         </FadeIn>
       </section>
 
-      <SlideIn direction="up" delay={0.1} className="grid gap-4 px-6 py-8 md:grid-cols-2 md:px-10">
+      {/* daily challenge */}
+      <FadeIn delay={0.15} className="px-6 md:px-10">
+        <div
+          className={`glass mx-auto flex max-w-xl items-center justify-between rounded-[20px] p-4 ${
+            challengeCleared ? "ring-2 ring-primary/40" : ""
+          }`}
+        >
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-sun-deep">
+              🎯 {challenge.title}
+            </p>
+            <p className="mt-1 text-sm text-ink/60">{challenge.description}</p>
+          </div>
+          {challengeCleared && (
+            <span className="rounded-full bg-primary-tint px-3 py-1 text-xs font-semibold text-primary-deep">
+              ผ่านแล้ว ✓
+            </span>
+          )}
+        </div>
+      </FadeIn>
+
+      <SlideIn direction="up" delay={0.1} className="grid gap-4 px-6 py-8 md:grid-cols-3 md:px-10">
         <div className="glass rounded-[20px] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <p className="font-display font-semibold text-sun-deep">สตรีค {streak} วัน</p>
           <p className="mt-1 text-sm text-ink/60">ทำติดต่อกันเพื่อรักษาสตรีค</p>
@@ -130,6 +172,16 @@ export default async function Home() {
         <div className="glass rounded-[20px] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
           <p className="font-display font-semibold text-primary-deep">รวมเดือนนี้ {monthReps} ครั้ง</p>
           <p className="mt-1 text-sm text-ink/60">อัปเดตทุกครั้งที่จบเซสชัน</p>
+        </div>
+        <div className="glass rounded-[20px] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
+          <p className="font-display font-semibold text-plum-deep">สัปดาห์นี้ {weekThis} ครั้ง</p>
+          <p className="mt-1 text-sm text-ink/60">
+            {weekDelta === 0
+              ? "เท่ากับสัปดาห์ก่อน"
+              : weekDelta > 0
+                ? `มากกว่าสัปดาห์ก่อน +${weekDelta}`
+                : `น้อยกว่าสัปดาห์ก่อน ${weekDelta}`}
+          </p>
         </div>
       </SlideIn>
 
@@ -161,11 +213,7 @@ export default async function Home() {
           ) : (
             <ol className="mt-3 space-y-2">
               {rows.map((row, i) => (
-                <SlideIn
-                  key={row.user_id}
-                  direction="left"
-                  delay={i * 0.07}
-                >
+                <SlideIn key={row.user_id} direction="left" delay={i * 0.07}>
                   <li
                     className={`flex items-center justify-between rounded-xl px-3 py-2 transition-all duration-200 hover:-translate-y-0.5 hover:bg-primary-tint/50 ${
                       user && row.user_id === user.id ? "bg-primary-tint" : ""

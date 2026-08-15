@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import GlassButton from "@/components/ui/GlassButton";
 import ScaleIn from "@/components/animation/ScaleIn";
+import BlobBackground from "@/components/BlobBackground";
 
 export default function LoginPage() {
   const [consent, setConsent] = useState(false);
@@ -25,10 +26,7 @@ export default function LoginPage() {
 
   return (
     <main className="flex flex-1 items-center justify-center px-6">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -top-24 -left-24 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
-        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-plum/15 blur-3xl" />
-      </div>
+      <BlobBackground colors={["var(--color-primary)", "var(--color-plum)"]} />
 
       <div className="glass w-full max-w-sm rounded-[24px] p-8 text-center">
         <ScaleIn>
