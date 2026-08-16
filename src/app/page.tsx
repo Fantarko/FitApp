@@ -74,8 +74,6 @@ export default async function Home() {
   return (
     <main className="flex-1 flex flex-col">
       <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        {/* one asymmetric brush shape instead of three uniform blurred circles —
-            the "three matching glow orbs" look is the fastest AI-generated tell */}
         <svg
           className="animate-float-slow absolute -top-16 -right-32 h-[560px] w-[560px] opacity-[0.14] md:-right-10"
           viewBox="0 0 200 200"
@@ -143,68 +141,62 @@ export default async function Home() {
         </FadeIn>
       </section>
 
-      {/* daily challenge */}
-      <FadeIn delay={0.15} className="px-6 md:px-10">
-        <div
-          className={`glass mx-auto flex max-w-xl items-center justify-between rounded-[20px] p-4 ${
-            challengeCleared ? "ring-2 ring-primary/40" : ""
-          }`}
-        >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-sun-deep">
-              🎯 {challenge.title}
-            </p>
-            <p className="mt-1 text-sm text-ink/60">{challenge.description}</p>
+      {/* one lightweight stat strip — numbers with dividers, not three duplicate cards */}
+      <SlideIn direction="up" delay={0.1} className="px-6 md:px-10">
+        <div className="mx-auto flex max-w-2xl divide-x divide-black/10 rounded-[20px] bg-white/40 py-4 backdrop-blur">
+          <div className="flex-1 text-center">
+            <p className="font-display text-2xl font-bold text-sun-deep">{streak}</p>
+            <p className="mt-0.5 text-xs text-ink/50">วันติดสตรีค</p>
           </div>
-          {challengeCleared && (
-            <span className="rounded-full bg-primary-tint px-3 py-1 text-xs font-semibold text-primary-deep">
-              ผ่านแล้ว ✓
-            </span>
-          )}
-        </div>
-      </FadeIn>
-
-      <SlideIn direction="up" delay={0.1} className="grid gap-4 px-6 py-8 md:grid-cols-3 md:px-10">
-        <div className="glass rounded-[20px] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-          <p className="font-display font-semibold text-sun-deep">สตรีค {streak} วัน</p>
-          <p className="mt-1 text-sm text-ink/60">ทำติดต่อกันเพื่อรักษาสตรีค</p>
-        </div>
-        <div className="glass rounded-[20px] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-          <p className="font-display font-semibold text-primary-deep">รวมเดือนนี้ {monthReps} ครั้ง</p>
-          <p className="mt-1 text-sm text-ink/60">อัปเดตทุกครั้งที่จบเซสชัน</p>
-        </div>
-        <div className="glass rounded-[20px] p-5 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-          <p className="font-display font-semibold text-plum-deep">สัปดาห์นี้ {weekThis} ครั้ง</p>
-          <p className="mt-1 text-sm text-ink/60">
-            {weekDelta === 0
-              ? "เท่ากับสัปดาห์ก่อน"
-              : weekDelta > 0
-                ? `มากกว่าสัปดาห์ก่อน +${weekDelta}`
-                : `น้อยกว่าสัปดาห์ก่อน ${weekDelta}`}
-          </p>
+          <div className="flex-1 text-center">
+            <p className="font-display text-2xl font-bold text-primary-deep">{monthReps}</p>
+            <p className="mt-0.5 text-xs text-ink/50">ครั้งเดือนนี้</p>
+          </div>
+          <div className="flex-1 text-center">
+            <p className="font-display text-2xl font-bold text-plum-deep">
+              {weekDelta > 0 ? "+" : ""}
+              {weekDelta}
+            </p>
+            <p className="mt-0.5 text-xs text-ink/50">เทียบสัปดาห์ก่อน</p>
+          </div>
         </div>
       </SlideIn>
 
-      {user && myBadges.length > 0 && (
-        <FadeIn delay={0.15} className="px-6 md:px-10">
-          <div className="glass mx-auto flex max-w-xl flex-wrap items-center gap-3 rounded-[20px] p-4">
-            <span className="text-sm font-medium text-ink/50">เหรียญของคุณ</span>
-            {myBadges.map((b) => (
-              <span
-                key={b.code}
-                title={b.name_th}
-                className="flex items-center gap-1 rounded-full bg-sun/15 px-3 py-1 text-sm"
-              >
-                <span>{b.icon}</span>
-                <span className="text-ink/70">{b.name_th}</span>
-              </span>
-            ))}
+      {/* daily challenge — a distinct banner, not another glass card */}
+      <FadeIn delay={0.15} className="px-6 pt-4 md:px-10">
+        <Link
+          href={user ? "/pushup" : "/login"}
+          className={`mx-auto flex max-w-2xl items-center gap-4 rounded-[20px] bg-gradient-to-r px-5 py-4 text-white shadow-md transition-transform hover:-translate-y-0.5 ${
+            challengeCleared ? "from-primary to-primary-deep" : "from-plum to-plum-deep"
+          }`}
+        >
+          <span className="text-3xl">{challengeCleared ? "✅" : "🎯"}</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">{challenge.title}</p>
+            <p className="truncate text-xs text-white/80">
+              {challengeCleared ? "ผ่านแล้ววันนี้ เก่งมาก!" : challenge.description}
+            </p>
           </div>
+        </Link>
+      </FadeIn>
+
+      {user && myBadges.length > 0 && (
+        <FadeIn delay={0.18} className="mx-auto mt-4 flex max-w-2xl flex-wrap justify-center gap-2 px-6 md:px-10">
+          {myBadges.map((b) => (
+            <span
+              key={b.code}
+              title={b.name_th}
+              className="flex items-center gap-1 rounded-full bg-sun/15 px-3 py-1 text-sm"
+            >
+              <span>{b.icon}</span>
+              <span className="text-ink/70">{b.name_th}</span>
+            </span>
+          ))}
         </FadeIn>
       )}
 
       <section className="px-6 pb-16 pt-8 md:px-10">
-        <FadeIn delay={0.2} className="glass mx-auto max-w-xl rounded-[24px] p-5">
+        <FadeIn delay={0.22} className="glass mx-auto max-w-xl rounded-[24px] p-5">
           <h2 className="font-display text-lg font-bold text-primary-deep">
             อันดับเดือนนี้
           </h2>
