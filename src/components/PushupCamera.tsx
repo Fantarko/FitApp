@@ -24,6 +24,7 @@ import {
   type QualityIssue,
 } from "@/lib/pose/frameQuality";
 import { createClient } from "@/lib/supabase/client";
+import { analyzePushupForm } from "@/lib/pose/formAnalysis";
 
 type Status =
   | "idle"
@@ -96,6 +97,9 @@ export default function PushupCamera({
   const [motivationVariant, setMotivationVariant] = useState(0);
   const [lastDurationSeconds, setLastDurationSeconds] = useState(0);
   const [challengeCleared, setChallengeCleared] = useState(false);
+  const [formScore, setFormScore] = useState(80);
+  const [coachMessage, setCoachMessage] = useState("เตรียมท่าให้พร้อม");
+  const [workoutScore, setWorkoutScore] = useState(0);
   const motivationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [vsRole, setVsRole] = useState<"challenger" | "opponent" | null>(null);
@@ -210,6 +214,11 @@ export default function PushupCamera({
     if (points) {
       const quality = qualityRef.current.evaluate(points, lastBrightnessRef.current);
       qualityOk = quality.ok;
+      if (statusRef.current === "running" || statusRef.current === "calibrating") {
+        const analysis = analyzePushupForm(points, formScore);
+        setFormScore((prev) => Math.round(prev * 0.8 + analysis.score * 0.2));
+        setCoachMessage(analysis.coach);
+      }
 
       setQualityIssues((prev) => {
         const same =
@@ -388,24 +397,12 @@ export default function PushupCamera({
 
   // 5) ใช้ supabase ตัวเดียว + กันส่งคะแนนหลังแมตช์จบ
   async function updateVsScore(count: number) {
-    if (mode !== "vs" || !matchId || !vsRoleRef.current) {
-      return;
-    }
-
-    const column =
-      vsRoleRef.current === "challenger" ? "challenger_reps" : "opponent_reps";
-
-    const { error } = await supabase
-      .from("vs_matches")
-      .update({
-        [column]: count,
-      })
-      .eq("id", matchId)
-      .eq("status", "active");
-
-    if (error) {
-      console.error("Failed to update VS score:", error);
-    }
+    if (mode !== "vs" || !matchId || !vsRoleRef.current) return;
+    const { error } = await supabase.rpc("update_vs_score", {
+      p_match_id: matchId,
+      p_reps: count,
+    });
+    if (error) console.error("Failed to update VS score:", error);
   }
 
   async function handleFinish() {
@@ -419,18 +416,14 @@ export default function PushupCamera({
     } = await supabase.auth.getUser();
 
     if (user) {
-      const { data: session } = await supabase
-        .from("pushup_sessions")
-        .insert({
-          user_id: user.id,
-          rep_count: counterRef.current.getCount(),
-          duration_seconds: durationSeconds,
-          landmark_log: logRef.current,
-          low_quality_ratio: qualityRef.current.getLowQualityRatio(),
-          match_id: mode === "vs" ? matchId ?? null : null,
-        })
-        .select("id")
-        .single();
+      const { data: sessionId } = await supabase.rpc("save_pushup_session", {
+        p_rep_count: counterRef.current.getCount(),
+        p_duration_seconds: durationSeconds,
+        p_landmark_log: logRef.current,
+        p_low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+        p_match_id: mode === "vs" ? matchId ?? null : null,
+      });
+      const session = { id: sessionId as string | null };
 
       // fire-and-forget: awards a streak badge if this session pushed the streak over a milestone
       supabase.rpc("check_and_award_badges", { p_user_id: user.id });
@@ -453,6 +446,10 @@ export default function PushupCamera({
       }
     }
 
+    const speedScore = durationSeconds > 0
+      ? Math.max(0, Math.min(100, Math.round((counterRef.current.getCount() / durationSeconds) * 20)))
+      : 0;
+    setWorkoutScore(Math.round(formScore * 0.55 + speedScore * 0.15 + Math.min(100, counterRef.current.getCount() * 2) * 0.30));
     setStatus("done");
   }
 
@@ -794,6 +791,16 @@ export default function PushupCamera({
         )}
       </div>
 
+      <div className="grid w-full max-w-sm grid-cols-2 gap-3">
+        <div className="glass rounded-2xl p-3 text-center">
+          <p className="text-[11px] text-ink/40">Form Score</p>
+          <p className="mt-1 font-display text-2xl font-bold text-primary-deep">{formScore}</p>
+        </div>
+        <div className="glass rounded-2xl p-3 text-center">
+          <p className="text-[11px] text-ink/40">Coach</p>
+          <p className="mt-1 text-xs font-medium text-ink/65">{coachMessage}</p>
+        </div>
+      </div>
       <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} />
 
       <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
@@ -935,9 +942,14 @@ export default function PushupCamera({
               </div>
             </div>
 
+            <div className="mt-4 rounded-2xl bg-primary-tint p-3">
+              <p className="text-xs text-ink/45">Workout Score</p>
+              <p className="font-display text-3xl font-bold text-primary-deep">{workoutScore}/100</p>
+              <p className="mt-1 text-xs text-ink/50">Form {formScore}/100 · Speed + consistency จาก session นี้</p>
+            </div>
             {challengeCleared && (
               <p className="mt-4 inline-block rounded-full bg-sun/20 px-3 py-1 text-xs font-semibold text-sun-deep">
-                🎯 ผ่านท้าประจำวันแล้ว!
+                🎯 ผ่านท้าประจำวันแล้ว! +50 XP
               </p>
             )}
           </ScaleIn>

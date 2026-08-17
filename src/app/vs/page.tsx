@@ -550,6 +550,6 @@ export default function VsPage() {
       )}
 
     </div>
-  </main>
+  <div className="mt-4 text-center"><a href="/vs/history" className="text-sm text-ink/45 underline underline-offset-4">ดู Match History →</a></div>\n</main>
 );
 }

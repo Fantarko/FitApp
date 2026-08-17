@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import GlassButton from "@/components/ui/GlassButton";
@@ -94,6 +95,13 @@ export default function FriendsPage() {
     loadAll();
   }
 
+  async function removeFriend(friendId: string) {
+    if (!userId) return;
+    await supabase.from("friendships").delete()
+      .or(`and(requester_id.eq.${userId},addressee_id.eq.${friendId}),and(requester_id.eq.${friendId},addressee_id.eq.${userId})`);
+    loadAll();
+  }
+
   return (
     <main className="relative flex flex-1 flex-col items-center overflow-hidden px-6 py-10">
       <BlobBackground colors={["var(--color-primary)", "var(--color-plum)"]} />
@@ -160,14 +168,15 @@ export default function FriendsPage() {
         ) : (
           <ol className="glass mt-2 divide-y divide-black/5 rounded-2xl">
             {friends.map((f, i) => (
-              <li key={f.user_id} className="flex items-center justify-between p-3">
-                <div className="flex items-center gap-2">
+              <li key={f.user_id} className="flex items-center justify-between gap-3 p-3">
+                <div className="flex min-w-0 items-center gap-2">
                   <span className="w-5 text-center text-xs text-ink/40">{i + 1}</span>
-                  <span className="text-sm font-medium">{f.display_name ?? "ผู้เล่นไม่ระบุชื่อ"}</span>
+                  <Link href={`/friends/${f.user_id}`} className="truncate text-sm font-medium hover:underline">{f.display_name ?? "ผู้เล่นไม่ระบุชื่อ"}</Link>
                 </div>
-                <span className="font-display text-sm font-bold text-primary-deep">
-                  {f.month_reps} ครั้ง
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="font-display text-sm font-bold text-primary-deep">{f.month_reps} ครั้ง</span>
+                  <button type="button" onClick={() => removeFriend(f.user_id)} className="text-xs text-ink/35 hover:text-red-600">ลบ</button>
+                </div>
               </li>
             ))}
           </ol>

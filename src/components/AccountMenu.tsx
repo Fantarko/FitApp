@@ -16,6 +16,7 @@ const MENU_LINKS = [
   { href: "/stats", label: "รายงาน" },
   { href: "/leaderboard", label: "อันดับ" },
   { href: "/friends", label: "เพื่อน" },
+  { href: "/notifications", label: "การแจ้งเตือน" },
   { href: "/profile", label: "โปรไฟล์" },
 ];
 

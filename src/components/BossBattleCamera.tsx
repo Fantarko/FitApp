@@ -282,12 +282,12 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
       } = await supabase.auth.getUser();
 
       if (user) {
-        await supabase.from("pushup_sessions").insert({
-          user_id: user.id,
-          rep_count: counterRef.current.getCount(),
-          duration_seconds: durationSeconds,
-          landmark_log: logRef.current,
-          low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+        await supabase.rpc("save_pushup_session", {
+          p_rep_count: counterRef.current.getCount(),
+          p_duration_seconds: durationSeconds,
+          p_landmark_log: logRef.current,
+          p_low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+          p_match_id: null,
         });
 
         // keep the smallest (best) reps-to-defeat if this boss was beaten before

@@ -30,7 +30,7 @@ export default async function BossListPage() {
   if (user && list.length > 0) {
     const { data: progress } = await supabase
       .from("user_boss_progress")
-      .select("boss_id, defeated_at")
+      .select("boss_id, defeated_at, best_reps_used")
       .eq("user_id", user.id)
       .not("defeated_at", "is", null);
 
@@ -38,6 +38,9 @@ export default async function BossListPage() {
       (progress ?? []).map((p) => p.boss_id as string)
     );
   }
+
+  const progressMap = new Map((progress ?? []).map((p) => [p.boss_id as string, p]));
+  const defeatedCount = defeatedBossIds.size;
 
   return (
     <main className="relative flex min-h-screen flex-1 flex-col items-center overflow-hidden px-6 py-10">
@@ -55,6 +58,11 @@ export default async function BossListPage() {
         <h1 className="animate-slide-up font-display text-3xl font-bold text-sun-deep md:text-4xl">
           โหมดปราบบอส
         </h1>
+
+        <div className="mt-4 flex justify-center gap-2">
+          <span className="rounded-full bg-primary-tint px-3 py-1 text-xs font-semibold text-primary-deep">ปลดล็อก {defeatedCount}/{list.length}</span>
+          <Link href="/boss/history" className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink/60">ประวัติ Boss</Link>
+        </div>
 
         <p
           className="animate-slide-up mx-auto mt-3 max-w-md text-center leading-6 text-ink/60"
@@ -137,8 +145,9 @@ export default async function BossListPage() {
                   </p>
 
                   <p className="mt-1 text-xs text-ink/50">
-                    HP {boss.hp}
+                    HP {boss.hp} · รางวัล {boss.hp} XP
                   </p>
+                  {defeated && <p className="mt-1 text-[11px] font-medium text-primary-deep">Best {progressMap.get(boss.id)?.best_reps_used ?? "—"} ครั้ง</p>}
                 </div>
               </div>
 
