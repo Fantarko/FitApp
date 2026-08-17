@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import PlayerManager from "@/components/admin/PlayerManager";
 import BossManager from "@/components/admin/BossManager";
 import ReportActions from "@/components/admin/ReportActions";
+import BlobBackground from "@/components/BlobBackground";
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -34,7 +35,9 @@ export default async function AdminPage() {
   ]);
 
   return (
-    <main className="flex-1 px-6 py-10 md:px-10">
+    <main className="relative flex-1 overflow-hidden px-6 py-10 md:px-10">
+      <BlobBackground colors={["var(--color-ink)", "var(--color-plum)"]} />
+
       <FadeIn>
         <h1 className="font-display text-3xl font-bold text-primary-deep">Admin</h1>
       </FadeIn>
