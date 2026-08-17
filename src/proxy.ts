@@ -36,6 +36,10 @@ export async function proxy(request: NextRequest) {
     request.nextUrl.pathname.startsWith("/boss") ||
     request.nextUrl.pathname.startsWith("/stats") ||
     request.nextUrl.pathname.startsWith("/friends") ||
+    request.nextUrl.pathname.startsWith("/profile") ||
+    request.nextUrl.pathname.startsWith("/leaderboard") ||
+    request.nextUrl.pathname.startsWith("/achievements") ||
+    request.nextUrl.pathname.startsWith("/history") ||
     isAdminRoute;
 
   if (!user && isProtectedRoute) {

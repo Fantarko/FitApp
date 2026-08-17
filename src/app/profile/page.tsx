@@ -33,7 +33,7 @@ export default async function ProfilePage() {
       <div className="mx-auto max-w-3xl">
         <FadeIn className="glass rounded-[28px] p-6 md:p-8">
           <div className="flex flex-wrap items-center gap-5">
-            {profileRes.data?.avatar_url ? <img src={profileRes.data.avatar_url} alt="" className="h-20 w-20 rounded-full object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-tint text-3xl">👤</div>}
+            {profileRes.data?.avatar_url ? <img src={profileRes.data.avatar_url} alt="" className="h-20 w-20 rounded-full object-cover" /> : <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary-tint text-3xl font-display font-bold text-primary-deep">{(profileRes.data?.display_name ?? "?").charAt(0)}</div>}
             <div className="min-w-0 flex-1">
               <p className="text-sm text-ink/45">โปรไฟล์</p>
               <h1 className="truncate font-display text-3xl font-bold text-primary-deep">{profileRes.data?.display_name ?? "นักวิดพื้น"}</h1>
@@ -47,9 +47,21 @@ export default async function ProfilePage() {
           </div>
         </FadeIn>
 
-        <div className="mt-6 grid gap-4 sm:grid-cols-4">
-          {[["💪", reps, "ครั้งทั้งหมด"], ["🔥", streakRes.data ?? 0, "วันสตรีค"], ["⚔️", wins, "ชนะ VS"], ["🏆", badges.length, "Badge"]].map(([icon, value, label]) => <FadeIn key={String(label)} className="glass rounded-[20px] p-5 text-center"><div className="text-xl">{icon}</div><p className="mt-2 font-display text-2xl font-bold text-primary-deep">{Number(value).toLocaleString()}</p><p className="text-xs text-ink/50">{label}</p></FadeIn>)}
-        </div>
+        <FadeIn delay={0.05} className="mt-6 flex divide-x divide-black/10 rounded-[20px] bg-white/40 py-4 backdrop-blur">
+          {[
+            [reps, "ครั้งทั้งหมด"],
+            [streakRes.data ?? 0, "วันสตรีค"],
+            [wins, "ชนะ VS"],
+            [badges.length, "Badge"],
+          ].map(([value, label]) => (
+            <div key={String(label)} className="flex-1 text-center">
+              <p className="font-display text-2xl font-bold text-primary-deep">
+                {Number(value).toLocaleString()}
+              </p>
+              <p className="mt-0.5 text-xs text-ink/50">{label}</p>
+            </div>
+          ))}
+        </FadeIn>
 
         <FadeIn delay={0.1} className="glass mt-6 rounded-[24px] p-5">
           <div className="flex items-center justify-between"><h2 className="font-display font-semibold">🏅 Badges ของฉัน</h2><Link href="/achievements" className="text-sm text-primary-deep underline underline-offset-4">ดูทั้งหมด</Link></div>
