@@ -28,6 +28,7 @@ type Boss = {
   name_th: string;
   hp: number;
   icon: string;
+  icon_url: string | null;
 };
 
 type Status =
@@ -326,11 +327,18 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
           </div>
         )}
         <div
-          className={`mx-auto flex h-24 w-24 items-center justify-center rounded-full text-5xl transition-all duration-150 ${
+          className={`mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full text-5xl transition-all duration-150 ${
             hitFlash ? "scale-90 bg-red-500/40" : "bg-black/5"
           }`}
         >
-          {hp === 0 ? "💀" : boss.icon}
+          {hp === 0 ? (
+            "💀"
+          ) : boss.icon_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={boss.icon_url} alt={boss.name_th} className="h-full w-full object-cover" />
+          ) : (
+            boss.icon
+          )}
         </div>
         <p className="mt-2 font-display text-lg font-bold text-sun-deep">{boss.name_th}</p>
         <div className="mt-2 h-4 w-full overflow-hidden rounded-full bg-black/10">

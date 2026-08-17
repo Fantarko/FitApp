@@ -38,12 +38,8 @@ export default function DailyRepsChart({ data }: { data: DayReps[] }) {
   const barWidth = width / series.length - barGap;
 
   return (
-    <div className="w-full overflow-x-auto">
-      <svg
-        viewBox={`0 0 ${width} ${height + 26}`}
-        className="w-full"
-        style={{ minWidth: Math.max(420, series.length * 14) }}
-      >
+    <div className="w-full min-w-0">
+      <svg viewBox={`0 0 ${width} ${height + 26}`} className="block w-full">
         <defs>
           <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="var(--color-primary)" />

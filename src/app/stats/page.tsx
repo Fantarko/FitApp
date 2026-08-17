@@ -102,15 +102,15 @@ export default async function StatsPage() {
       )}
 
       {/* chart + calendar side by side on desktop */}
-      <div className="mt-6 grid gap-6 lg:grid-cols-5">
-        <FadeIn delay={0.2} className="glass rounded-[24px] p-5 lg:col-span-3">
+      <div className="mt-6 grid min-w-0 gap-6 lg:grid-cols-5">
+        <FadeIn delay={0.2} className="glass min-w-0 rounded-[24px] p-5 lg:col-span-3">
           <h2 className="font-display font-semibold text-ink">📊 จำนวนครั้งรายวัน — เดือนนี้</h2>
           <div className="mt-4">
             <DailyRepsChart data={dailyData} />
           </div>
         </FadeIn>
 
-        <FadeIn delay={0.25} className="glass rounded-[24px] p-5 lg:col-span-2">
+        <FadeIn delay={0.25} className="glass min-w-0 rounded-[24px] p-5 lg:col-span-2">
           <h2 className="font-display font-semibold text-ink">📅 ปฏิทินกิจกรรม</h2>
           <div className="mt-4">
             <MonthActivityCalendar data={dailyData} />

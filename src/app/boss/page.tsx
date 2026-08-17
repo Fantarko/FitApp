@@ -8,6 +8,7 @@ type Boss = {
   name_th: string;
   hp: number;
   icon: string;
+  icon_url: string | null;
 };
 
 export default async function BossListPage() {
@@ -19,7 +20,7 @@ export default async function BossListPage() {
 
   const { data: bosses } = await supabase
     .from("bosses")
-    .select("id, stage, name_th, hp, icon")
+    .select("id, stage, name_th, hp, icon, icon_url")
     .order("stage", { ascending: true });
 
   const list = (bosses ?? []) as Boss[];
@@ -110,7 +111,7 @@ export default async function BossListPage() {
                 {/* Boss character */}
                 <span
                   className={`
-                    text-3xl
+                    flex h-12 w-12 items-center justify-center overflow-hidden rounded-full text-3xl
                     transition-transform
                     duration-300
                     ${
@@ -120,7 +121,14 @@ export default async function BossListPage() {
                     }
                   `}
                 >
-                  {locked ? "🔒" : boss.icon}
+                  {locked ? (
+                    "🔒"
+                  ) : boss.icon_url ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={boss.icon_url} alt={boss.name_th} className="h-full w-full object-cover" />
+                  ) : (
+                    boss.icon
+                  )}
                 </span>
 
                 <div className="text-left">

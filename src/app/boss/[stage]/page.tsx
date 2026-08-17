@@ -15,7 +15,7 @@ export default async function BossBattlePage({
 
   const { data: boss } = await supabase
     .from("bosses")
-    .select("id, stage, name_th, hp, icon")
+    .select("id, stage, name_th, hp, icon, icon_url")
     .eq("stage", stageNum)
     .single();
 

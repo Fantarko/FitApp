@@ -2,6 +2,7 @@ import FadeIn from "@/components/animation/FadeIn";
 import CountUp from "@/components/animation/CountUp";
 import { createClient } from "@/lib/supabase/server";
 import PlayerManager from "@/components/admin/PlayerManager";
+import BossManager from "@/components/admin/BossManager";
 import ReportActions from "@/components/admin/ReportActions";
 
 export default async function AdminPage() {
@@ -80,6 +81,10 @@ export default async function AdminPage() {
 
       <FadeIn delay={0.25} className="mt-8">
         <PlayerManager />
+      </FadeIn>
+
+      <FadeIn delay={0.3} className="mt-8">
+        <BossManager />
       </FadeIn>
 
       <p className="mt-8 text-sm text-ink/50">

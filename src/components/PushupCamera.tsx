@@ -93,6 +93,7 @@ export default function PushupCamera({
   const [calibrationProgress, setCalibrationProgress] = useState(0);
   const [countdownNumber, setCountdownNumber] = useState<number | null>(null);
   const [motivationMessage, setMotivationMessage] = useState<string | null>(null);
+  const [motivationVariant, setMotivationVariant] = useState(0);
   const [lastDurationSeconds, setLastDurationSeconds] = useState(0);
   const [challengeCleared, setChallengeCleared] = useState(false);
   const motivationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -248,9 +249,9 @@ export default function PushupCamera({
 
             if (event.count % 10 === 0) {
               playMilestoneSound();
-              const msg =
-                MOTIVATION_MESSAGES_TH[(event.count / 10 - 1) % MOTIVATION_MESSAGES_TH.length];
-              setMotivationMessage(msg);
+              const idx = (event.count / 10 - 1) % MOTIVATION_MESSAGES_TH.length;
+              setMotivationMessage(MOTIVATION_MESSAGES_TH[idx]);
+              setMotivationVariant(idx);
               if (motivationTimerRef.current) clearTimeout(motivationTimerRef.current);
               motivationTimerRef.current = setTimeout(() => setMotivationMessage(null), 2200);
             } else {
@@ -655,7 +656,7 @@ export default function PushupCamera({
       <canvas ref={sampleCanvasRef} width={32} height={18} className="hidden" />
 
       <div className="glass relative aspect-video w-full overflow-hidden rounded-[24px]">
-        <MotivationToast message={motivationMessage} />
+        <MotivationToast message={motivationMessage} variantIndex={motivationVariant} />
 
         {/* VS: tug-of-war bar + timer, overlaid directly on the camera so it's
             visible while looking at yourself — no more glancing away */}
