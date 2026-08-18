@@ -850,11 +850,11 @@ export default function PushupCamera({
 
       <div className="grid w-full max-w-sm grid-cols-2 gap-3">
         <div className="glass rounded-2xl p-3 text-center">
-          <p className="text-[11px] text-ink/40">Form Score</p>
+          <p className="text-[11px] text-ink/40">คะแนนฟอร์ม</p>
           <p className="mt-1 font-display text-2xl font-bold text-primary-deep">{formScore}</p>
         </div>
         <div className="glass rounded-2xl p-3 text-center">
-          <p className="text-[11px] text-ink/40">Coach</p>
+          <p className="text-[11px] text-ink/40">โค้ช</p>
           <p className="mt-1 text-xs font-medium text-ink/65">{coachMessage}</p>
         </div>
       </div>
@@ -1000,9 +1000,9 @@ export default function PushupCamera({
             </div>
 
             <div className="mt-4 rounded-2xl bg-primary-tint p-3">
-              <p className="text-xs text-ink/45">Workout Score</p>
+              <p className="text-xs text-ink/45">คะแนนการออกกำลังกาย</p>
               <p className="font-display text-3xl font-bold text-primary-deep">{workoutScore}/100</p>
-              <p className="mt-1 text-xs text-ink/50">Form {formScore}/100 · Speed + consistency จาก session นี้</p>
+              <p className="mt-1 text-xs text-ink/50">ฟอร์ม {formScore}/100 · ความเร็ว + ความสม่ำเสมอ จาก session นี้</p>
             </div>
             {challengeCleared && (
               <p className="mt-4 inline-block rounded-full bg-sun/20 px-3 py-1 text-xs font-semibold text-sun-deep">

@@ -72,7 +72,7 @@ export default async function BossListPage() {
 
         <div className="mt-4 flex justify-center gap-2">
           <span className="rounded-full bg-primary-tint px-3 py-1 text-xs font-semibold text-primary-deep">ปลดล็อก {defeatedCount}/{list.length}</span>
-          <Link href="/boss/history" className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink/60">ประวัติ Boss</Link>
+          <Link href="/boss/history" className="rounded-full bg-white/70 px-3 py-1 text-xs font-semibold text-ink/60">ประวัติบอส</Link>
         </div>
 
         <p

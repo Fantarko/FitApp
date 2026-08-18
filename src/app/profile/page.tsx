@@ -62,7 +62,7 @@ export default async function ProfilePage() {
         </FadeIn>
 
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[[reps, "Total Reps"], [bestRecord, "Best Record"], [streak, "Streak"], [rating, "Rating"]].map(([value, label]) => (
+          {[[reps, "จำนวนครั้งรวม"], [bestRecord, "สถิติที่ดีที่สุด"], [streak, "สตรีค"], [rating, "เรตติ้ง"]].map(([value, label]) => (
             <FadeIn key={String(label)} className="glass rounded-[20px] p-4 text-center">
               <p className="font-display text-2xl font-bold text-primary-deep">{Number(value).toLocaleString()}</p>
               <p className="mt-1 text-xs text-ink/45">{label}</p>
@@ -72,23 +72,23 @@ export default async function ProfilePage() {
 
         <FadeIn delay={0.05} className="glass mt-4 rounded-[20px] p-5">
           <div className="flex items-center justify-between">
-            <h2 className="font-display font-semibold">VS Competitive</h2>
-            <span className="rounded-full bg-plum/10 px-3 py-1 text-xs font-bold text-plum-deep">{winRate}% Win Rate</span>
+            <h2 className="font-display font-semibold">การแข่งขัน VS</h2>
+            <span className="rounded-full bg-plum/10 px-3 py-1 text-xs font-bold text-plum-deep">ชนะ {winRate}%</span>
           </div>
           <div className="mt-4 grid grid-cols-3 divide-x divide-black/10 text-center">
-            <div><p className="font-display text-2xl font-bold">{wins}</p><p className="text-xs text-ink/45">Win</p></div>
-            <div><p className="font-display text-2xl font-bold">{losses}</p><p className="text-xs text-ink/45">Loss</p></div>
-            <div><p className="font-display text-2xl font-bold">{draws}</p><p className="text-xs text-ink/45">Draw</p></div>
+            <div><p className="font-display text-2xl font-bold">{wins}</p><p className="text-xs text-ink/45">ชนะ</p></div>
+            <div><p className="font-display text-2xl font-bold">{losses}</p><p className="text-xs text-ink/45">แพ้</p></div>
+            <div><p className="font-display text-2xl font-bold">{draws}</p><p className="text-xs text-ink/45">เสมอ</p></div>
           </div>
         </FadeIn>
 
         <FadeIn delay={0.1} className="glass mt-4 rounded-[24px] p-5">
-          <div className="flex items-center justify-between"><h2 className="font-display font-semibold">XP Breakdown</h2><span className="text-sm font-bold text-primary-deep">{xpBreakdown.total.toLocaleString()} XP</span></div>
+          <div className="flex items-center justify-between"><h2 className="font-display font-semibold">รายละเอียด XP</h2><span className="text-sm font-bold text-primary-deep">{xpBreakdown.total.toLocaleString()} XP</span></div>
           <div className="mt-4 grid grid-cols-2 gap-2 text-sm sm:grid-cols-4">
             {[
-              ["Push-up", xpBreakdown.pushupXp], ["VS", xpBreakdown.vsXp], ["Boss", xpBreakdown.bossXp],
-              ["Daily", xpBreakdown.dailyXp], ["Session", xpBreakdown.sessionXp], ["Badge", xpBreakdown.badgeXp],
-              ["Streak", xpBreakdown.streakXp],
+              ["วิดพื้น", xpBreakdown.pushupXp], ["VS", xpBreakdown.vsXp], ["บอส", xpBreakdown.bossXp],
+              ["รายวัน", xpBreakdown.dailyXp], ["เซสชัน", xpBreakdown.sessionXp], ["Badge", xpBreakdown.badgeXp],
+              ["สตรีค", xpBreakdown.streakXp],
             ].map(([label, value]) => <div key={String(label)} className="rounded-xl bg-black/[.03] p-3"><p className="text-xs text-ink/45">{label}</p><p className="mt-1 font-display font-bold text-primary-deep">+{Number(value).toLocaleString()}</p></div>)}
           </div>
         </FadeIn>
@@ -101,8 +101,8 @@ export default async function ProfilePage() {
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/history" className="rounded-2xl bg-white/70 px-5 py-3 text-sm font-medium shadow-sm">ประวัติการวิดพื้น →</Link>
           <Link href="/vs" className="rounded-2xl bg-plum px-5 py-3 text-sm font-medium text-white shadow-sm">VS →</Link>
-          <Link href="/boss" className="rounded-2xl bg-sun/20 px-5 py-3 text-sm font-medium text-sun-deep">Boss →</Link>
-          <Link href="/leaderboard" className="rounded-2xl bg-white/70 px-5 py-3 text-sm font-medium shadow-sm">Leaderboard →</Link>
+          <Link href="/boss" className="rounded-2xl bg-sun/20 px-5 py-3 text-sm font-medium text-sun-deep">บอส →</Link>
+          <Link href="/leaderboard" className="rounded-2xl bg-white/70 px-5 py-3 text-sm font-medium shadow-sm">อันดับ →</Link>
         </div>
       </div>
     </main>

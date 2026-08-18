@@ -31,18 +31,18 @@ export default async function LeaderboardPage({ searchParams }: { searchParams: 
     <BlobBackground colors={["var(--color-primary)", "var(--color-plum)"]}/>
     <div className="mx-auto max-w-4xl">
       <FadeIn>
-        <h1 className="font-display text-3xl font-bold text-primary-deep">Leaderboard</h1>
+        <h1 className="font-display text-3xl font-bold text-primary-deep">อันดับ</h1>
         <p className="mt-1 text-sm text-ink/50">อันดับจากจำนวนวิดพื้น</p>
         <div className="mt-4 flex flex-wrap gap-2">
-          {[["weekly","Weekly"],["monthly","Monthly"],["all-time","All-time"]].map(([key,label]) =>
+          {[["weekly","รายสัปดาห์"],["monthly","รายเดือน"],["all-time","ตลอดกาล"]].map(([key,label]) =>
             <Link key={key} href={`/leaderboard?period=${key}`} className={`rounded-full px-4 py-2 text-xs font-semibold ${period === key ? "bg-primary text-white" : "bg-white/70 text-ink/60"}`}>{label}</Link>
           )}
           {myRank && <span className="ml-auto rounded-full bg-plum/10 px-4 py-2 text-xs font-bold text-plum-deep">อันดับของคุณ #{myRank}</span>}
         </div>
       </FadeIn>
       <FadeIn delay={0.1} className="glass mt-6 rounded-[24px] p-5">
-        <div className="flex items-center justify-between"><h2 className="font-display text-lg font-semibold">🌎 Global</h2><span className="text-xs text-ink/40">{period}</span></div>
-        {error ? <p className="mt-4 text-sm text-red-600">ต้องติดตั้ง migration ล่าสุดก่อนใช้ Leaderboard แบบใหม่</p> : rows.length ? renderRows(rows) : <p className="mt-4 text-sm text-ink/45">ยังไม่มีข้อมูล</p>}
+        <div className="flex items-center justify-between"><h2 className="font-display text-lg font-semibold">🌎 ทั่วโลก</h2><span className="text-xs text-ink/40">{period === "weekly" ? "รายสัปดาห์" : period === "all-time" ? "ตลอดกาล" : "รายเดือน"}</span></div>
+        {error ? <p className="mt-4 text-sm text-red-600">ต้องติดตั้ง migration ล่าสุดก่อนใช้อันดับแบบใหม่</p> : rows.length ? renderRows(rows) : <p className="mt-4 text-sm text-ink/45">ยังไม่มีข้อมูล</p>}
       </FadeIn>
     </div>
   </main>;

@@ -38,13 +38,13 @@ export default async function FriendProfilePage({ params }: { params: Promise<{ 
       <FadeIn className="glass mt-4 rounded-[28px] p-6">
         <div className="flex items-center gap-4">
           {profileRes.data.avatar_url ? <img src={profileRes.data.avatar_url} alt="" className="h-16 w-16 rounded-full object-cover"/> : <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-tint text-2xl font-bold text-primary-deep">{(profileRes.data.display_name ?? "?").charAt(0)}</div>}
-          <div><h1 className="font-display text-2xl font-bold text-primary-deep">{profileRes.data.display_name ?? "ผู้เล่น"}</h1><p className="text-sm text-ink/50">Level {level.level} · Rating {rating}</p></div>
+          <div><h1 className="font-display text-2xl font-bold text-primary-deep">{profileRes.data.display_name ?? "ผู้เล่น"}</h1><p className="text-sm text-ink/50">Level {level.level} · เรตติ้ง {rating}</p></div>
         </div>
         <div className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {[[reps,"Reps"],[Math.max(...sessions.map(s=>s.rep_count??0),0),"Best"],[streakRes.data??0,"Streak"],[wins,"VS Win"]].map(([v,l])=><div key={String(l)} className="rounded-2xl bg-black/[.03] p-3 text-center"><p className="font-display text-xl font-bold">{Number(v).toLocaleString()}</p><p className="text-xs text-ink/45">{l}</p></div>)}
+          {[[reps,"จำนวนครั้ง"],[Math.max(...sessions.map(s=>s.rep_count??0),0),"ดีที่สุด"],[streakRes.data??0,"สตรีค"],[wins,"ชนะ VS"]].map(([v,l])=><div key={String(l)} className="rounded-2xl bg-black/[.03] p-3 text-center"><p className="font-display text-xl font-bold">{Number(v).toLocaleString()}</p><p className="text-xs text-ink/45">{l}</p></div>)}
         </div>
         <div className="mt-5 flex flex-wrap gap-2">{badges.map(b=><span key={b.code} className="rounded-full bg-sun/15 px-3 py-2 text-sm">{b.icon} {b.name_th}</span>)}</div>
-        <Link href="/vs" className="mt-5 inline-flex rounded-xl bg-plum px-4 py-2 text-sm font-medium text-white">ไป Challenge ใน VS</Link>
+        <Link href="/vs" className="mt-5 inline-flex rounded-xl bg-plum px-4 py-2 text-sm font-medium text-white">ไปท้าทายใน VS</Link>
       </FadeIn>
     </div>
   </main>;

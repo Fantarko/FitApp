@@ -28,7 +28,7 @@ export default function ReportActions({
           current === "upheld" ? "bg-red-50 text-red-600" : "bg-primary-tint text-primary-deep"
         }`}
       >
-        {current}
+        {current === "upheld" ? "ยืนยันโกง" : "ยกเลิก"}
       </span>
     );
   }

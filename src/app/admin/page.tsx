@@ -39,7 +39,7 @@ export default async function AdminPage() {
       <BlobBackground colors={["var(--color-ink)", "var(--color-plum)"]} />
 
       <FadeIn>
-        <h1 className="font-display text-3xl font-bold text-primary-deep">Admin</h1>
+        <h1 className="font-display text-3xl font-bold text-primary-deep">ผู้ดูแลระบบ</h1>
       </FadeIn>
 
       <div className="mt-6 grid gap-4 md:grid-cols-3">
