@@ -10,7 +10,7 @@ export default async function ProfilePage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login?next=/profile");
 
-  const [profileRes, sessionsRes, matchesRes, badgesRes, streakRes, dailyRes, bossRes] = await Promise.all([
+  const [profileRes, sessionsRes, matchesRes, badgesRes, streakRes, dailyRes, bossRes, progressRes] = await Promise.all([
     supabase.from("profiles").select("display_name, avatar_url").eq("id", user.id).single(),
     supabase.from("pushup_sessions").select("rep_count").eq("user_id", user.id),
     supabase.from("vs_matches").select("winner_id, challenger_id, opponent_id, challenger_reps, opponent_reps").or(`challenger_id.eq.${user.id},opponent_id.eq.${user.id}`).eq("status", "completed"),

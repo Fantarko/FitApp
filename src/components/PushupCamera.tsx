@@ -416,17 +416,26 @@ export default function PushupCamera({
     } = await supabase.auth.getUser();
 
     if (user) {
-      const { data: sessionId } = await supabase.rpc("save_pushup_session", {
-        p_rep_count: counterRef.current.getCount(),
-        p_duration_seconds: durationSeconds,
-        p_landmark_log: logRef.current,
-        p_low_quality_ratio: qualityRef.current.getLowQualityRatio(),
-        p_match_id: mode === "vs" ? matchId ?? null : null,
-      });
-      const session = { id: sessionId as string | null };
+      const { data: completion, error: completionError } = await supabase.rpc(
+        "complete_pushup_session",
+        {
+          p_user_id: user.id,
+          p_reps: counterRef.current.getCount(),
+          p_duration_seconds: durationSeconds,
+          p_landmark_log: logRef.current,
+          p_low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+          p_match_id: mode === "vs" ? matchId ?? null : null,
+        }
+      );
 
-      // fire-and-forget: awards a streak badge if this session pushed the streak over a milestone
-      supabase.rpc("check_and_award_badges", { p_user_id: user.id });
+      if (completionError || !completion) {
+        console.error("Failed to complete push-up session:", completionError);
+        setErrorMsg(completionError?.message ?? "บันทึกผลวิดพื้นไม่สำเร็จ");
+        setStatus("error");
+        return;
+      }
+
+      const session = { id: (completion as { session_id?: string }).session_id ?? null };
 
       // daily challenge: same rule for everyone today (see lib/dailyChallenge.ts) —
       // if this session cleared it, record completion (upsert is safe against double-finish clicks)
@@ -601,26 +610,74 @@ export default function PushupCamera({
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from("pushup_sessions").insert({
-        user_id: user.id,
-        rep_count: counterRef.current.getCount(),
-        duration_seconds: durationSeconds,
-        landmark_log: logRef.current,
-        low_quality_ratio: qualityRef.current.getLowQualityRatio(),
-        match_id: matchId,
-      });
+    if (!user) {
+      setErrorMsg("กรุณาเข้าสู่ระบบก่อนบันทึกผลการแข่งขัน");
+      setStatus("error");
+      return;
     }
 
-    const { data, error } = await supabase.rpc("finish_vs_match", { p_match_id: matchId });
-    if (!error && data) {
-      const result = data as VsMatch;
-      const myId = vsRoleRef.current === "challenger" ? result.challenger_id : result.opponent_id;
-      setVsResult(!result.winner_id ? "tie" : result.winner_id === myId ? "win" : "lose");
+    // Keep a session row for history/stats charts. Player progress is updated
+    // by complete_vs_match() below, so this insert must not touch player_stats.
+    const { error: sessionError } = await supabase.rpc("save_pushup_session", {
+      p_rep_count: counterRef.current.getCount(),
+      p_duration_seconds: durationSeconds,
+      p_landmark_log: logRef.current,
+      p_low_quality_ratio: qualityRef.current.getLowQualityRatio(),
+      p_match_id: matchId,
+    });
+
+    if (sessionError) {
+      console.error("Failed to save VS session:", sessionError);
+      setErrorMsg(sessionError.message);
+      setStatus("error");
+      return;
     }
-    if (user) {
-      // fire-and-forget: awards streak/VS-win/boss badges if this session/match qualifies
-      supabase.rpc("check_and_award_badges", { p_user_id: user.id });
+
+    // Read the authoritative server score before completing. This avoids a
+    // React-state race where the last realtime update has not reached the UI yet.
+    const { data: authoritativeMatch, error: scoreReadError } = await supabase
+      .from("vs_matches")
+      .select("challenger_reps, opponent_reps")
+      .eq("id", matchId)
+      .single();
+
+    if (scoreReadError || !authoritativeMatch) {
+      console.error("Failed to read authoritative VS score:", scoreReadError);
+      setErrorMsg(scoreReadError?.message ?? "อ่านคะแนนการแข่งขันไม่สำเร็จ");
+      setStatus("error");
+      return;
+    }
+
+    // complete_vs_match() is the single server transaction that finalizes the
+    // match and updates XP, rating, win/loss/draw, streak and total reps.
+    const { data, error } = await supabase.rpc("complete_vs_match", {
+      p_match_id: matchId,
+      p_challenger_reps: authoritativeMatch.challenger_reps ?? 0,
+      p_opponent_reps: authoritativeMatch.opponent_reps ?? 0,
+    });
+
+    if (error) {
+      console.error("Failed to complete VS match:", error);
+      // Another player may have completed it milliseconds earlier. Re-read the
+      // match so the UI still shows the authoritative server result.
+      const { data: currentMatch } = await supabase
+        .from("vs_matches")
+        .select("challenger_id, opponent_id, challenger_reps, opponent_reps, winner_id, status")
+        .eq("id", matchId)
+        .single();
+
+      if (currentMatch?.status === "completed") {
+        const myId = vsRoleRef.current === "challenger" ? currentMatch.challenger_id : currentMatch.opponent_id;
+        setVsResult(!currentMatch.winner_id ? "tie" : currentMatch.winner_id === myId ? "win" : "lose");
+      } else {
+        setErrorMsg(error.message);
+        setStatus("error");
+        return;
+      }
+    } else if (data) {
+      const result = data as { winner_id: string | null };
+      const myId = vsRoleRef.current === "challenger" ? user.id : user.id;
+      setVsResult(!result.winner_id ? "tie" : result.winner_id === myId ? "win" : "lose");
     }
     stopStream();
     setStatus("done");

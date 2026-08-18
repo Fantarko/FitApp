@@ -282,13 +282,20 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
       } = await supabase.auth.getUser();
 
       if (user) {
-        await supabase.rpc("save_pushup_session", {
-          p_rep_count: counterRef.current.getCount(),
+        const { error: completionError } = await supabase.rpc("complete_pushup_session", {
+          p_user_id: user.id,
+          p_reps: counterRef.current.getCount(),
           p_duration_seconds: durationSeconds,
           p_landmark_log: logRef.current,
           p_low_quality_ratio: qualityRef.current.getLowQualityRatio(),
           p_match_id: null,
         });
+
+        if (completionError) {
+          console.error("Failed to save boss workout:", completionError);
+          setStatus("error");
+          return;
+        }
 
         // keep the smallest (best) reps-to-defeat if this boss was beaten before
         const { data: existing } = await supabase
