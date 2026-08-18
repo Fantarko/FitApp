@@ -11,6 +11,12 @@ type Boss = {
   icon_url: string | null;
 };
 
+type BossProgress = {
+  boss_id: string;
+  defeated_at: string | null;
+  best_reps_used: number | null;
+};
+
 export default async function BossListPage() {
   const supabase = await createClient();
 
@@ -26,22 +32,27 @@ export default async function BossListPage() {
   const list = (bosses ?? []) as Boss[];
 
   let defeatedBossIds = new Set<string>();
+  let progress: BossProgress[] = [];
 
   if (user && list.length > 0) {
-    const { data: progress } = await supabase
+    const { data } = await supabase
       .from("user_boss_progress")
       .select("boss_id, defeated_at, best_reps_used")
       .eq("user_id", user.id)
       .not("defeated_at", "is", null);
 
+    progress = (data ?? []) as BossProgress[];
+
     defeatedBossIds = new Set(
-      (progress ?? []).map((p) => p.boss_id as string)
+      progress.map((p: BossProgress) => p.boss_id)
     );
   }
 
-  const progressMap = new Map((progress ?? []).map((p) => [p.boss_id as string, p]));
-  const defeatedCount = defeatedBossIds.size;
+  const progressMap = new Map(
+    progress.map((p: BossProgress) => [p.boss_id, p])
+  );
 
+  const defeatedCount = defeatedBossIds.size;
   return (
     <main className="relative flex min-h-screen flex-1 flex-col items-center overflow-hidden px-6 py-10">
       {/* Animated background */}
