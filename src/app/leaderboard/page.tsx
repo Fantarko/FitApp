@@ -4,46 +4,243 @@ import { createClient } from "@/lib/supabase/server";
 import BlobBackground from "@/components/BlobBackground";
 import FadeIn from "@/components/animation/FadeIn";
 
-type Row = { user_id: string; display_name: string | null; reps: number; rank: number };
+type Row = {
+  user_id: string;
+  display_name: string | null;
+  reps: number;
+  rank: number;
+};
 
-export default async function LeaderboardPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+type Period = "weekly" | "monthly" | "all-time";
+
+const periods: { key: Period; label: string }[] = [
+  { key: "weekly", label: "สัปดาห์นี้" },
+  { key: "monthly", label: "เดือนนี้" },
+  { key: "all-time", label: "ตลอดกาล" },
+];
+
+export default async function LeaderboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login?next=/leaderboard");
-  const params = await searchParams;
-  const period = ["weekly", "monthly", "all-time"].includes(params.period ?? "") ? params.period! : "monthly";
 
-  const { data, error } = await supabase.rpc("get_leaderboard", { p_period: period });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login?next=/leaderboard");
+  }
+
+  const params = await searchParams;
+
+  const period: Period = periods.some((item) => item.key === params.period)
+    ? (params.period as Period)
+    : "monthly";
+
+  const { data, error } = await supabase.rpc("get_leaderboard", {
+    p_period: period,
+  });
+
   const rows = (data ?? []) as Row[];
-  const myRank = rows.find((r) => r.user_id === user.id)?.rank;
+
+  const me = rows.find((row) => row.user_id === user.id);
+
+  const periodLabel =
+    period === "weekly"
+      ? "สัปดาห์นี้"
+      : period === "all-time"
+        ? "ตลอดกาล"
+        : "เดือนนี้";
 
   const renderRows = (items: Row[]) => (
-    <ol className="mt-3 divide-y divide-black/5">
-      {items.map((r) => <li key={r.user_id} className={`flex items-center gap-3 px-3 py-3 ${r.user_id === user.id ? "rounded-xl bg-primary-tint" : ""}`}>
-        <span className="w-8 text-center font-display font-bold text-ink/45">{r.rank <= 3 ? ["🥇","🥈","🥉"][r.rank - 1] : r.rank}</span>
-        <Link href={`/friends/${r.user_id}`} className="flex-1 font-medium hover:underline">{r.display_name ?? "ผู้เล่นไม่ระบุชื่อ"}</Link>
-        <span className="font-display font-bold text-primary-deep">{Number(r.reps).toLocaleString()}</span>
-      </li>)}
-    </ol>
+    <div className="mt-3 overflow-hidden rounded-2xl border border-black/[0.05] bg-white/55">
+      <ol className="divide-y divide-black/[0.05]">
+        {items.map((row) => {
+          const isMe = row.user_id === user.id;
+          const isTopThree = row.rank <= 3;
+
+          return (
+            <li
+              key={row.user_id}
+              className={[
+                "flex items-center gap-3 px-4 py-3.5 transition",
+                "hover:bg-black/[0.02]",
+                isMe ? "bg-primary/[0.07]" : "",
+              ].join(" ")}
+            >
+              <div className="flex w-9 shrink-0 justify-center">
+                {row.rank === 1 ? (
+                  <span className="text-lg">🥇</span>
+                ) : row.rank === 2 ? (
+                  <span className="text-lg">🥈</span>
+                ) : row.rank === 3 ? (
+                  <span className="text-lg">🥉</span>
+                ) : (
+                  <span className="text-sm font-semibold text-ink/35">
+                    {row.rank}
+                  </span>
+                )}
+              </div>
+
+              <Link
+                href={`/friends/${row.user_id}`}
+                className="min-w-0 flex-1"
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className={[
+                      "truncate text-sm",
+                      isMe
+                        ? "font-semibold text-primary-deep"
+                        : "font-medium text-ink",
+                    ].join(" ")}
+                  >
+                    {row.display_name ?? "ผู้เล่นไม่ระบุชื่อ"}
+                  </span>
+
+                  {isMe && (
+                    <span className="shrink-0 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary-deep">
+                      คุณ
+                    </span>
+                  )}
+                </div>
+              </Link>
+
+              <div className="text-right">
+                <div
+                  className={[
+                    "font-display text-sm font-bold",
+                    isTopThree
+                      ? "text-primary-deep"
+                      : "text-ink/70",
+                  ].join(" ")}
+                >
+                  {Number(row.reps).toLocaleString()}
+                </div>
+                <div className="text-[10px] text-ink/35">ครั้ง</div>
+              </div>
+            </li>
+          );
+        })}
+      </ol>
+    </div>
   );
 
-  return <main className="relative flex-1 overflow-hidden px-6 py-10 md:px-10">
-    <BlobBackground colors={["var(--color-primary)", "var(--color-plum)"]}/>
-    <div className="mx-auto max-w-4xl">
-      <FadeIn>
-        <h1 className="font-display text-3xl font-bold text-primary-deep">อันดับ</h1>
-        <p className="mt-1 text-sm text-ink/50">อันดับจากจำนวนวิดพื้น</p>
-        <div className="mt-4 flex flex-wrap gap-2">
-          {[["weekly","รายสัปดาห์"],["monthly","รายเดือน"],["all-time","ตลอดกาล"]].map(([key,label]) =>
-            <Link key={key} href={`/leaderboard?period=${key}`} className={`rounded-full px-4 py-2 text-xs font-semibold ${period === key ? "bg-primary text-white" : "bg-white/70 text-ink/60"}`}>{label}</Link>
+  return (
+    <main className="relative min-h-full flex-1 overflow-hidden px-5 py-8 md:px-10 md:py-10">
+      <BlobBackground
+        colors={[
+          "var(--color-primary)",
+          "var(--color-plum)",
+        ]}
+      />
+
+      <div className="relative mx-auto max-w-4xl">
+        <FadeIn>
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="mb-2 text-xs font-semibold uppercase tracking-[0.16em] text-primary/70">
+                Leaderboard
+              </p>
+
+              <h1 className="font-display text-3xl font-bold tracking-tight text-primary-deep md:text-4xl">
+                อันดับ
+              </h1>
+
+              <p className="mt-1.5 text-sm text-ink/50">
+                ใครวิดพื้นได้มากที่สุดในช่วง{periodLabel}
+              </p>
+            </div>
+
+            {me && (
+              <div className="w-fit rounded-2xl border border-black/[0.05] bg-white/65 px-4 py-3 backdrop-blur-sm">
+                <p className="text-[10px] font-medium text-ink/40">
+                  อันดับของคุณ
+                </p>
+
+                <div className="mt-0.5 flex items-baseline gap-1.5">
+                  <span className="font-display text-xl font-bold text-plum-deep">
+                    #{me.rank}
+                  </span>
+
+                  <span className="text-xs text-ink/40">
+                    · {Number(me.reps).toLocaleString()} ครั้ง
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex gap-1 rounded-xl bg-black/[0.035] p-1 sm:w-fit">
+            {periods.map((item) => {
+              const active = period === item.key;
+
+              return (
+                <Link
+                  key={item.key}
+                  href={`/leaderboard?period=${item.key}`}
+                  className={[
+                    "rounded-lg px-4 py-2 text-xs font-semibold transition",
+                    active
+                      ? "bg-white text-primary-deep shadow-sm"
+                      : "text-ink/45 hover:text-ink/70",
+                  ].join(" ")}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </FadeIn>
+
+        <FadeIn
+          delay={0.08}
+          className="glass mt-6 rounded-[24px] p-4 sm:p-5"
+        >
+          <div className="flex items-center justify-between px-1">
+            <div>
+              <h2 className="font-display text-lg font-semibold text-ink">
+                ทั่วโลก
+              </h2>
+
+              <p className="mt-0.5 text-xs text-ink/40">
+                จัดอันดับจากจำนวนวิดพื้นที่บันทึกไว้
+              </p>
+            </div>
+
+            <span className="rounded-full bg-black/[0.035] px-3 py-1.5 text-[10px] font-medium text-ink/45">
+              {periodLabel}
+            </span>
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-2xl border border-red-200/70 bg-red-50/70 p-4">
+              <p className="text-sm font-semibold text-red-700">
+                โหลดอันดับไม่สำเร็จ
+              </p>
+
+              <p className="mt-1 text-xs leading-relaxed text-red-600/80">
+                {error.message || "เกิดข้อผิดพลาดในการโหลดข้อมูลอันดับ"}
+              </p>
+            </div>
+          ) : rows.length > 0 ? (
+            renderRows(rows)
+          ) : (
+            <div className="mt-4 rounded-2xl border border-dashed border-black/10 px-5 py-10 text-center">
+              <p className="text-sm font-medium text-ink/50">
+                ยังไม่มีข้อมูลอันดับ
+              </p>
+
+              <p className="mt-1 text-xs text-ink/35">
+                เริ่มบันทึกการวิดพื้นเพื่อขึ้นอันดับ
+              </p>
+            </div>
           )}
-          {myRank && <span className="ml-auto rounded-full bg-plum/10 px-4 py-2 text-xs font-bold text-plum-deep">อันดับของคุณ #{myRank}</span>}
-        </div>
-      </FadeIn>
-      <FadeIn delay={0.1} className="glass mt-6 rounded-[24px] p-5">
-        <div className="flex items-center justify-between"><h2 className="font-display text-lg font-semibold">🌎 ทั่วโลก</h2><span className="text-xs text-ink/40">{period === "weekly" ? "รายสัปดาห์" : period === "all-time" ? "ตลอดกาล" : "รายเดือน"}</span></div>
-        {error ? <p className="mt-4 text-sm text-red-600">ต้องติดตั้ง migration ล่าสุดก่อนใช้อันดับแบบใหม่</p> : rows.length ? renderRows(rows) : <p className="mt-4 text-sm text-ink/45">ยังไม่มีข้อมูล</p>}
-      </FadeIn>
-    </div>
-  </main>;
+        </FadeIn>
+      </div>
+    </main>
+  );
 }
