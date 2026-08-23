@@ -11,8 +11,8 @@ import BlobBackground from "@/components/BlobBackground";
 type LeaderboardRow = {
   user_id: string;
   display_name: string | null;
-  avatar_url: string | null;
-  month_reps: number;
+  reps: number;
+  rank: number;
 };
 
 export default async function Home() {
@@ -61,7 +61,10 @@ export default async function Home() {
   }
 
   const { data: leaderboard, error: leaderboardError } = await supabase.rpc(
-    "get_monthly_leaderboard"
+      "get_leaderboard",
+      {
+        p_period: "monthly",
+      }
   );
 
   if (leaderboardError) {
@@ -191,12 +194,12 @@ export default async function Home() {
                   >
                     <div className="flex items-center gap-3">
                       <span className="w-6 text-center font-display font-bold text-ink/50">
-                        {medals[i] ?? i + 1}
+                         {medals[i] ?? row.rank}
                       </span>
                       <span className="font-medium">{row.display_name ?? "ผู้เล่นไม่ระบุชื่อ"}</span>
                     </div>
                     <span className="font-display font-bold text-primary-deep">
-                      {row.month_reps} ครั้ง
+                      {row.reps} ครั้ง
                     </span>
                   </li>
                 </SlideIn>
