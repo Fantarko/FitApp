@@ -100,7 +100,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
  const landmarker = await PoseLandmarker.createFromOptions(vision, {
  baseOptions: {
  modelAssetPath:
- "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+ "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
  delegate: "GPU",
  },
  runningMode: "VIDEO",
@@ -378,7 +378,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
  )}
 
  {status === "calibrating" && (
- <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center"> <div className="text-4xl"> </div> <p className="font-display text-lg font-semibold text-white">กำลังตั้งกล้อง</p> <p className="max-w-xs text-sm text-white/80">
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center"> <div className="h-3 w-3 rounded-full bg-white/70" /> <p className="font-display text-lg font-semibold text-white">กำลังตั้งกล้อง</p> <p className="max-w-xs text-sm text-white/80">
  วางมือถือให้นิ่ง ให้เห็นทั้งตัวในเฟรม แสงพอ แล้วอยู่นิ่งสักครู่
  </p> <div className="h-2 w-48 overflow-hidden rounded-full bg-white/20"> <div
  className="h-full rounded-full bg-sun transition-all duration-150"
@@ -397,7 +397,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
  )}
 
  {status === "countdown" && countdownNumber !== null && (
- <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40"> <div className="text-6xl"> </div> <p className="font-display text-6xl font-bold text-white">{countdownNumber}</p> <p className="text-sm text-white/80">เตรียมตัว...</p> </div>
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">  <p className="font-display text-6xl font-bold text-white">{countdownNumber}</p> <p className="text-sm text-white/80">เตรียมตัว...</p> </div>
  )}
 
  {status === "fighting" && qualityIssues.length > 0 && (

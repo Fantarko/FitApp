@@ -152,7 +152,7 @@ export default function PushupCamera({
  const landmarker = await PoseLandmarker.createFromOptions(vision, {
  baseOptions: {
  modelAssetPath:
- "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task",
+ "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task",
  delegate: "GPU",
  },
  runningMode: "VIDEO",
@@ -759,7 +759,7 @@ export default function PushupCamera({
  )}
 
  {status === "calibrating" && (
- <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center"> <div className="text-4xl"> </div> <p className="font-display text-lg font-semibold text-white">
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/40 px-6 text-center"> <div className="h-3 w-3 rounded-full bg-white/70" /> <p className="font-display text-lg font-semibold text-white">
  กำลังตั้งกล้อง
  </p> <p className="max-w-xs text-sm text-white/80">
  วางมือถือให้นิ่ง (พิงหรือใช้ขาตั้ง) ให้เห็นทั้งตัวในเฟรม แสงพอ
@@ -772,7 +772,7 @@ export default function PushupCamera({
  <div className="space-y-1">
  {qualityIssues.map((issue) => (
  <p key={issue} className="text-xs font-medium text-amber-300">
- ️ {QUALITY_MESSAGES_TH[issue]}
+ {QUALITY_MESSAGES_TH[issue]}
  </p>
  ))}
  </div>
@@ -789,7 +789,7 @@ export default function PushupCamera({
  )}
 
  {status === "countdown" && countdownNumber !== null && (
- <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40"> <div className="text-6xl"> </div> <p className="font-display text-6xl font-bold text-white">
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">  <p className="font-display text-6xl font-bold text-white">
  {countdownNumber}
  </p> <p className="text-sm text-white/80">เตรียมตัว...</p> </div>
  )}
@@ -798,7 +798,7 @@ export default function PushupCamera({
  <div className="absolute inset-x-0 bottom-0 space-y-1 bg-black/50 p-3">
  {qualityIssues.map((issue) => (
  <p key={issue} className="text-center text-xs font-medium text-amber-300">
- ️ {QUALITY_MESSAGES_TH[issue]}
+ {QUALITY_MESSAGES_TH[issue]}
  </p>
  ))}
  <p className="text-center text-[11px] text-white/60">
@@ -818,7 +818,26 @@ export default function PushupCamera({
  รีเซ็ตกล้อง
  </button>
  )}
- </div> <div className="grid w-full max-w-sm grid-cols-2 gap-3"> <div className="glass rounded-2xl p-3 text-center"> <p className="text-[11px] text-ink/40">คะแนนฟอร์ม</p> <p className="mt-1 font-display text-2xl font-bold text-primary-deep">{formScore}</p> </div> <div className="glass rounded-2xl p-3 text-center"> <p className="text-[11px] text-ink/40">โค้ช</p> <p className="mt-1 text-xs font-medium text-ink/65">{coachMessage}</p> </div> </div> <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} /> <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
+ </div>
+
+      <div className="flex w-full max-w-sm items-center gap-4 rounded-2xl bg-white/45 px-4 py-3 backdrop-blur">
+        <div className="text-center">
+          <p
+            className={`font-display text-2xl font-bold ${
+              formScore >= 80 ? "text-primary-deep" : formScore >= 60 ? "text-sun-deep" : "text-red-600"
+            }`}
+          >
+            {formScore}
+          </p>
+          <p className="text-[10px] uppercase tracking-wide text-ink/40">ฟอร์ม</p>
+        </div>
+        <div className="h-9 w-px shrink-0 bg-black/10" />
+        <p className="text-xs font-medium leading-snug text-ink/65">{coachMessage}</p>
+      </div>
+
+      <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} />
+
+      <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
  {status === "idle" || status === "error" ? (
  <GlassButton
  variant="primary"
@@ -870,13 +889,13 @@ export default function PushupCamera({
  : "bg-sun/20 text-sun-deep"
  }`}
  >
- {vsResult === "win" ? " คุณชนะ!" : vsResult === "lose" ? "คุณแพ้" : " เสมอ"}
+ {vsResult === "win" ? "คุณชนะ!" : vsResult === "lose" ? "คุณแพ้" : "เสมอ"}
  </p> <div className="mt-4 grid grid-cols-2 gap-3"> <div> <p className="text-xs text-ink/40">คุณ</p> <p className="font-display text-3xl font-bold text-plum-deep">{reps}</p> </div> <div> <p className="text-xs text-ink/40">{opponentName ?? "คู่แข่ง"}</p> <p className="font-display text-3xl font-bold text-ink/60">{opponentReps}</p> </div> </div> <p className="mt-4 text-sm text-ink/50">
  ใช้เวลาทั้งหมด {formatDuration(lastDurationSeconds)}
  </p> </ScaleIn>
 
  {reportStatus === "sent" ? (
- <p className="text-xs text-ink/50"> ส่งรายงานแล้ว ทีมงานจะตรวจสอบ</p>
+ <p className="text-xs text-ink/50">ส่งรายงานแล้ว ทีมงานจะตรวจสอบ</p>
  ) : reportOpen ? (
  <div className="glass w-full max-w-sm rounded-2xl p-4"> <p className="text-sm font-medium text-ink/70">รายงานคู่แข่ง</p> <textarea
  value={reportReason}
