@@ -469,9 +469,7 @@ export default function VsPage() {
  Match มีปัญหา
  ========================= */}
  {match?.status === "disputed" && (
- <div className="animate-fade-in grid gap-4"> <div className="animate-medal text-5xl">
- ️
- </div> <div> <p className="font-display text-xl font-bold text-plum-deep">
+ <div className="animate-fade-in grid gap-4"> <div className="animate-medal text-5xl"> </div> <div> <p className="font-display text-xl font-bold text-plum-deep">
  การแข่งขันมีข้อพิพาท
  </p> <p className="mt-1 text-sm text-ink/60">
  ระบบตรวจพบปัญหาในการแข่งขัน
@@ -487,6 +485,6 @@ export default function VsPage() {
  </GlassButton> </div>
  )}
 
- </div> <div className="mt-4 text-center"><a href="/vs/history" className="text-sm text-ink/45 underline underline-offset-4">ดู Match History </a></div></main>
+ </div> <div className="mt-4 text-center"><a href="/vs/history" className="text-sm text-ink/45 underline underline-offset-4">ดู Match History </a></div>\n</main>
 );
 }

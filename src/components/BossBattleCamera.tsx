@@ -336,8 +336,8 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
  }`}
  >
  {hp === 0 ? (
-                <span className="font-display text-sm font-bold text-ink/50">พ่ายแพ้</span>
-              ) : boss.icon_url ? (
+ <span className="font-display text-sm font-bold text-ink/50">พ่ายแพ้</span>
+ ) : boss.icon_url ? (
  // eslint-disable-next-line @next/next/no-img-element
  <img src={boss.icon_url} alt={boss.name_th} className="h-full w-full object-cover" />
  ) : (
@@ -367,8 +367,14 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
  />
 
  {status === "idle" && (
- <div className="absolute inset-0 flex items-center justify-center text-ink/50">
- กดเริ่มสู้เพื่อเปิดกล้อง
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
+ <div className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-sun/40">
+ <div className="h-7 w-7 rounded-full bg-sun/25" />
+ </div>
+ <div>
+ <p className="font-display text-base font-semibold text-ink/70">พร้อมท้าบอสหรือยัง</p>
+ <p className="mt-1 text-sm text-ink/45">กดปุ่มด้านล่างเพื่อเปิดกล้องแล้วเริ่มสู้</p>
+ </div>
  </div>
  )}
  {status === "loading" && (
@@ -388,7 +394,7 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
  <div className="space-y-1">
  {qualityIssues.map((issue) => (
  <p key={issue} className="text-xs font-medium text-amber-300">
- ️ {QUALITY_MESSAGES_TH[issue]}
+ {QUALITY_MESSAGES_TH[issue]}
  </p>
  ))}
  </div>
@@ -397,14 +403,14 @@ export default function BossBattleCamera({ boss }: { boss: Boss }) {
  )}
 
  {status === "countdown" && countdownNumber !== null && (
- <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">  <p className="font-display text-6xl font-bold text-white">{countdownNumber}</p> <p className="text-sm text-white/80">เตรียมตัว...</p> </div>
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40"> <p className="font-display text-6xl font-bold text-white">{countdownNumber}</p> <p className="text-sm text-white/80">เตรียมตัว...</p> </div>
  )}
 
  {status === "fighting" && qualityIssues.length > 0 && (
  <div className="absolute inset-x-0 bottom-0 space-y-1 bg-black/50 p-3">
  {qualityIssues.map((issue) => (
  <p key={issue} className="text-center text-xs font-medium text-amber-300">
- ️ {QUALITY_MESSAGES_TH[issue]}
+ {QUALITY_MESSAGES_TH[issue]}
  </p>
  ))}
  </div>

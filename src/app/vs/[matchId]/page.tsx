@@ -33,7 +33,7 @@ export default function VsMatchPage() {
  return (
  <main className="relative flex min-h-screen items-center justify-center overflow-hidden px-4">
  {/* Animated background */}
- <BlobBackground colors={["var(--color-plum)", "var(--color-sun)"]} /> <div className="glass animate-fade-in w-full max-w-md rounded-[28px] p-8 text-center"> <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-plum/10"> <span className="text-3xl animate-pulse"> ️</span> </div> <h1 className="font-display text-2xl font-bold text-plum-deep">
+ <BlobBackground colors={["var(--color-plum)", "var(--color-sun)"]} /> <div className="glass animate-fade-in w-full max-w-md rounded-[28px] p-8 text-center"> <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-plum/10"> <span className="text-3xl animate-pulse"> </span> </div> <h1 className="font-display text-2xl font-bold text-plum-deep">
  กำลังเตรียมการแข่งขัน...
  </h1> <p className="mt-3 text-sm text-ink/60">
  กำลังโหลดข้อมูลการแข่งขัน

@@ -293,7 +293,7 @@ export default async function ProfilePage() {
  <span className="ml-1 text-xs">XP</span> </span> </div> <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
  {[
  [" ", "วิดพื้น", xpBreakdown.pushupXp],
- [" ️", "VS", xpBreakdown.vsXp],
+ [" ", "VS", xpBreakdown.vsXp],
  [" ", "บอส", xpBreakdown.bossXp],
  [" ", "รายวัน", xpBreakdown.dailyXp],
  [" ", "เซสชัน", xpBreakdown.sessionXp],
@@ -359,7 +359,7 @@ export default async function ProfilePage() {
  </span> </Link> <Link
  href="/vs"
  className="group rounded-2xl bg-plum p-4 text-center text-sm font-medium text-white shadow-sm transition hover:-translate-y-0.5"
- > <span className="block text-xl"> ️</span> <span className="mt-2 block">
+ > <span className="block text-xl"> </span> <span className="mt-2 block">
  VS
  </span> </Link> <Link
  href="/boss"

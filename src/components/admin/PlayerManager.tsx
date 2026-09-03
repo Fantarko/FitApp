@@ -132,7 +132,7 @@ export default function PlayerManager() {
  className="w-20 rounded-lg border border-black/10 px-2 py-1 text-sm"
  /> <span className="text-xs text-ink/40">
  ({s.duration_seconds}s
- {s.low_quality_ratio && s.low_quality_ratio > 0.3 ? " ️ คุณภาพต่ำ" : ""})
+ {s.low_quality_ratio && s.low_quality_ratio > 0.3 ? " คุณภาพต่ำ" : ""})
  </span> <div className="ml-auto flex gap-1"> <GlassButton
  size="sm"
  variant="ghost"

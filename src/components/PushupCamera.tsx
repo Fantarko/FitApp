@@ -714,7 +714,7 @@ export default function PushupCamera({
  <div className="absolute inset-x-0 top-0 z-10 px-3 pt-3">
  {timeLeft !== null && (
  <p className="text-center font-display text-2xl font-bold text-white drop-shadow">
- ⏱️ {timeLeft} วิ
+ {timeLeft} วิ
  </p>
  )}
  <div className="mt-2 flex items-center gap-2"> <span className="w-8 shrink-0 text-right font-display text-sm font-bold text-white drop-shadow">
@@ -748,8 +748,14 @@ export default function PushupCamera({
  className="absolute inset-0 h-full w-full -scale-x-100"
  />
  {status === "idle" && (
- <div className="absolute inset-0 flex items-center justify-center text-ink/50">
- กดเริ่มนับเพื่อเปิดกล้อง
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 px-6 text-center">
+ <div className="relative flex h-16 w-16 items-center justify-center rounded-full border-2 border-dashed border-primary/30">
+ <div className="h-7 w-7 rounded-full bg-primary/25" />
+ </div>
+ <div>
+ <p className="font-display text-base font-semibold text-ink/70">พร้อมเริ่มวิดพื้นหรือยัง</p>
+ <p className="mt-1 text-sm text-ink/45">กดปุ่มด้านล่างเพื่อเปิดกล้องแล้วเริ่มนับ</p>
+ </div>
  </div>
  )}
  {status === "loading" && (
@@ -789,7 +795,7 @@ export default function PushupCamera({
  )}
 
  {status === "countdown" && countdownNumber !== null && (
- <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40">  <p className="font-display text-6xl font-bold text-white">
+ <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/40"> <p className="font-display text-6xl font-bold text-white">
  {countdownNumber}
  </p> <p className="text-sm text-white/80">เตรียมตัว...</p> </div>
  )}
@@ -820,24 +826,26 @@ export default function PushupCamera({
  )}
  </div>
 
-      <div className="flex w-full max-w-sm items-center gap-4 rounded-2xl bg-white/45 px-4 py-3 backdrop-blur">
-        <div className="text-center">
-          <p
-            className={`font-display text-2xl font-bold ${
-              formScore >= 80 ? "text-primary-deep" : formScore >= 60 ? "text-sun-deep" : "text-red-600"
-            }`}
-          >
-            {formScore}
-          </p>
-          <p className="text-[10px] uppercase tracking-wide text-ink/40">ฟอร์ม</p>
-        </div>
-        <div className="h-9 w-px shrink-0 bg-black/10" />
-        <p className="text-xs font-medium leading-snug text-ink/65">{coachMessage}</p>
-      </div>
+ {(status === "running" || status === "saving" || status === "done") && (
+ <div className="flex w-full max-w-sm items-center gap-4 rounded-2xl bg-white/45 px-4 py-3 backdrop-blur">
+ <div className="text-center">
+ <p
+ className={`font-display text-2xl font-bold ${
+ formScore >= 80 ? "text-primary-deep" : formScore >= 60 ? "text-sun-deep" : "text-red-600"
+ }`}
+ >
+ {formScore}
+ </p>
+ <p className="text-[10px] uppercase tracking-wide text-ink/40">ฟอร์ม</p>
+ </div>
+ <div className="h-9 w-px shrink-0 bg-black/10" />
+ <p className="text-xs font-medium leading-snug text-ink/65">{coachMessage}</p>
+ </div>
+ )}
 
-      <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} />
+ <RepRing value={reps} goal={GOAL} label="ครั้ง" size={180} />
 
-      <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
+ <div className="sticky bottom-4 z-10 flex gap-4 rounded-full bg-white/70 p-2 shadow-lg backdrop-blur">
  {status === "idle" || status === "error" ? (
  <GlassButton
  variant="primary"

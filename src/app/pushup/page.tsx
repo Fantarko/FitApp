@@ -56,7 +56,9 @@ export default function PushupPage() {
  style={{ animationDelay: "280ms" }}
  >
  {/* Camera glow */}
- <div className="pointer-events-none absolute -inset-3 -z-10 rounded-[32px] bg-primary/10 blur-2xl" /> <div className="glass rounded-[28px] p-2 transition-all duration-300 hover:shadow-xl"> <PushupCamera /> </div> </div>
+ <div className="pointer-events-none absolute -inset-3 -z-10 rounded-[32px] bg-primary/10 blur-2xl" />
+ <PushupCamera />
+ </div>
 
  {/* Tips */}
  <div
